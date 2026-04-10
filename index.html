@@ -1,0 +1,1568 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard JAC Zipaquirá</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.26.0/plotly.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   VARIABLES & RESET
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+:root {
+  --bg: #0f1923;
+  --bg2: #162032;
+  --bg3: #1d2d45;
+  --card: #1e2e47;
+  --card-hover: #253450;
+  --border: rgba(100,140,200,0.15);
+  --blue: #3b82f6;
+  --blue2: #60a5fa;
+  --teal: #14b8a6;
+  --green: #22c55e;
+  --yellow: #eab308;
+  --orange: #f97316;
+  --red: #ef4444;
+  --purple: #a855f7;
+  --text: #e2e8f0;
+  --text2: #94a3b8;
+  --text3: #64748b;
+  --accent: #3b82f6;
+  --sidebar-w: 260px;
+  --header-h: 64px;
+  --radius: 14px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.4);
+}
+* { box-sizing: border-box; margin:0; padding:0; }
+html, body { height:100%; overflow:hidden; }
+body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background:var(--bg); color:var(--text); }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   LAYOUT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.layout { display:flex; height:100vh; }
+
+/* SIDEBAR */
+.sidebar {
+  width: var(--sidebar-w);
+  min-width: var(--sidebar-w);
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s ease, left 0.3s ease;
+  overflow: hidden;
+  z-index: 200;
+}
+.sidebar.collapsed { width:64px; min-width:64px; }
+
+.sidebar-logo {
+  padding: 20px 18px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+.sidebar-logo .logo-icon {
+  width:36px; height:36px; min-width:36px;
+  background: linear-gradient(135deg, var(--blue), var(--teal));
+  border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:18px; box-shadow: 0 2px 8px rgba(59,130,246,0.4);
+}
+.sidebar-logo .logo-text { overflow:hidden; }
+.sidebar-logo .logo-text h2 { font-size:0.85rem; font-weight:700; color:var(--text); white-space:nowrap; }
+.sidebar-logo .logo-text p { font-size:0.72rem; color:var(--text2); white-space:nowrap; margin-top:1px; }
+
+.sidebar-section-label {
+  font-size:0.68rem; font-weight:700; text-transform:uppercase;
+  letter-spacing:1px; color:var(--text3); padding:16px 18px 6px;
+  white-space:nowrap; overflow:hidden;
+  transition: opacity 0.2s;
+}
+.sidebar.collapsed .sidebar-section-label { opacity:0; }
+
+.nav-item {
+  display:flex; align-items:center; gap:12px;
+  padding:10px 18px; cursor:pointer; border-radius:10px;
+  margin: 2px 8px; transition:all 0.18s; position:relative;
+  white-space:nowrap; overflow:hidden;
+}
+.nav-item:hover { background:var(--bg3); }
+.nav-item.active { background: linear-gradient(90deg, rgba(59,130,246,0.2), rgba(59,130,246,0.05)); }
+.nav-item.active::before {
+  content:''; position:absolute; left:0; top:0; bottom:0;
+  width:3px; background:var(--blue); border-radius:0 3px 3px 0;
+}
+.nav-item .nav-icon {
+  font-size:18px; min-width:24px; text-align:center;
+  transition: transform 0.2s;
+}
+.nav-item:hover .nav-icon { transform: scale(1.15); }
+.nav-item .nav-label { font-size:0.84rem; font-weight:500; color:var(--text2); transition:color 0.18s; }
+.nav-item.active .nav-label { color:var(--blue2); font-weight:600; }
+.nav-item .nav-badge {
+  margin-left:auto; background:var(--blue); color:white;
+  font-size:0.68rem; font-weight:700; padding:2px 7px; border-radius:20px;
+  min-width:22px; text-align:center;
+}
+.sidebar.collapsed .nav-label,
+.sidebar.collapsed .nav-badge { display:none; }
+.sidebar.collapsed .logo-text { display:none; }
+
+/* Tooltip on collapsed */
+.sidebar.collapsed .nav-item:hover::after {
+  content: attr(data-tip);
+  position:absolute; left:62px; top:50%; transform:translateY(-50%);
+  background:var(--bg3); color:var(--text); padding:6px 12px; border-radius:8px;
+  font-size:0.82rem; white-space:nowrap; z-index:999;
+  border:1px solid var(--border); pointer-events:none;
+  box-shadow: var(--shadow);
+}
+
+/* MAIN */
+.main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+
+/* TOPBAR */
+.topbar {
+  height:var(--header-h); background:var(--bg2);
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center; padding:0 24px; gap:16px;
+  flex-shrink:0;
+}
+.topbar-toggle {
+  width:36px; height:36px; border-radius:8px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--bg3); border:1px solid var(--border);
+  color:var(--text2); font-size:16px; transition:all 0.2s;
+}
+.topbar-toggle:hover { background:var(--card); color:var(--text); }
+.topbar-title { font-size:1rem; font-weight:700; color:var(--text); }
+.topbar-sub { font-size:0.78rem; color:var(--text2); }
+.topbar-right { margin-left:auto; display:flex; align-items:center; gap:12px; }
+
+/* FILTER DROPDOWN */
+.filter-btn {
+  display:flex; align-items:center; gap:8px;
+  background:var(--bg3); border:1px solid var(--border);
+  color:var(--text2); padding:8px 14px; border-radius:8px;
+  cursor:pointer; font-size:0.82rem; font-weight:500;
+  transition:all 0.2s; position:relative; user-select:none;
+}
+.filter-btn:hover { border-color:var(--blue); color:var(--text); }
+.filter-btn.open { border-color:var(--blue); color:var(--blue2); }
+.filter-arrow { transition: transform 0.2s; font-size:10px; }
+.filter-btn.open .filter-arrow { transform: rotate(180deg); }
+.filter-dot { width:8px; height:8px; border-radius:50%; background:var(--blue); }
+
+.dropdown-menu {
+  position:absolute; top:calc(100% + 8px); right:0; min-width:200px;
+  background:var(--bg3); border:1px solid var(--border); border-radius:10px;
+  box-shadow:var(--shadow); z-index:1000; overflow:hidden;
+  animation: dropIn 0.15s ease;
+}
+@keyframes dropIn {
+  from { opacity:0; transform:translateY(-8px); }
+  to { opacity:1; transform:translateY(0); }
+}
+.dropdown-menu .dm-header {
+  padding:10px 14px; font-size:0.7rem; font-weight:700;
+  text-transform:uppercase; letter-spacing:1px; color:var(--text3);
+  border-bottom:1px solid var(--border);
+}
+.dropdown-menu label {
+  display:flex; align-items:center; gap:10px;
+  padding:9px 14px; cursor:pointer; transition:background 0.15s;
+  font-size:0.83rem; color:var(--text2);
+}
+.dropdown-menu label:hover { background:var(--card); color:var(--text); }
+.dropdown-menu input[type=checkbox] { width:15px; height:15px; accent-color:var(--blue); cursor:pointer; }
+
+/* CONTENT */
+.content { flex:1; overflow-y:auto; padding:24px; }
+.content::-webkit-scrollbar { width:6px; }
+.content::-webkit-scrollbar-track { background:transparent; }
+.content::-webkit-scrollbar-thumb { background:var(--bg3); border-radius:3px; }
+
+/* PAGE */
+.page { display:none; }
+.page.active { display:block; animation: fadeIn 0.25s ease; }
+@keyframes fadeIn { from {opacity:0; transform:translateY(8px);} to {opacity:1; transform:translateY(0);} }
+
+.page-title {
+  display:flex; align-items:center; gap:12px; margin-bottom:20px;
+}
+.page-title h2 { font-size:1.25rem; font-weight:700; }
+.page-title p { font-size:0.82rem; color:var(--text2); margin-top:2px; }
+.page-title .title-icon {
+  width:44px; height:44px; min-width:44px;
+  border-radius:12px; display:flex; align-items:center; justify-content:center;
+  font-size:22px;
+}
+.title-icon.blue { background:rgba(59,130,246,0.15); }
+.title-icon.teal { background:rgba(20,184,166,0.15); }
+.title-icon.green { background:rgba(34,197,94,0.15); }
+.title-icon.orange { background:rgba(249,115,22,0.15); }
+.title-icon.red { background:rgba(239,68,68,0.15); }
+.title-icon.purple { background:rgba(168,85,247,0.15); }
+.title-icon.yellow { background:rgba(234,179,8,0.15); }
+
+/* KPI GRID */
+.kpi-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(170px,1fr)); gap:14px; margin-bottom:22px; }
+
+.kpi-card {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:var(--radius); padding:18px 16px;
+  transition:all 0.2s; cursor:default; position:relative; overflow:hidden;
+}
+.kpi-card:hover { background:var(--card-hover); transform:translateY(-2px); box-shadow:var(--shadow); }
+.kpi-card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+}
+.kpi-card.c-blue::before { background:linear-gradient(90deg,var(--blue),var(--teal)); }
+.kpi-card.c-green::before { background:linear-gradient(90deg,var(--green),var(--teal)); }
+.kpi-card.c-red::before { background:linear-gradient(90deg,var(--red),var(--orange)); }
+.kpi-card.c-orange::before { background:linear-gradient(90deg,var(--orange),var(--yellow)); }
+.kpi-card.c-purple::before { background:linear-gradient(90deg,var(--purple),var(--blue)); }
+
+.kpi-icon { font-size:20px; margin-bottom:8px; }
+.kpi-label { font-size:0.71rem; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; color:var(--text3); }
+.kpi-val { font-size:1.9rem; font-weight:800; line-height:1; margin:5px 0 4px; }
+.kpi-sub { font-size:0.75rem; color:var(--text2); }
+.kpi-card.c-blue .kpi-val { color:var(--blue2); }
+.kpi-card.c-green .kpi-val { color:var(--green); }
+.kpi-card.c-red .kpi-val { color:var(--red); }
+.kpi-card.c-orange .kpi-val { color:var(--orange); }
+.kpi-card.c-purple .kpi-val { color:var(--purple); }
+
+/* CHART GRID */
+.charts-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(400px,1fr)); gap:18px; }
+.chart-card {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:var(--radius); padding:20px; transition:all 0.2s;
+}
+.chart-card:hover { border-color:rgba(100,140,200,0.3); }
+.chart-card.full { grid-column:1/-1; }
+.chart-card.half { grid-column: span 1; }
+
+.chart-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:16px; }
+.chart-header h3 { font-size:0.9rem; font-weight:700; color:var(--text); }
+.chart-header p { font-size:0.74rem; color:var(--text3); margin-top:3px; }
+.chart-tag {
+  background:var(--bg3); border:1px solid var(--border);
+  color:var(--text3); font-size:0.68rem; padding:3px 8px; border-radius:6px;
+  white-space:nowrap; flex-shrink:0;
+}
+
+/* INSIGHTS */
+.insights-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; margin-bottom:20px; }
+.insight-card {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:var(--radius); padding:18px; transition:all 0.2s;
+}
+.insight-card:hover { background:var(--card-hover); transform:translateY(-2px); box-shadow:var(--shadow); }
+.insight-top { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+.insight-emoji { font-size:24px; }
+.insight-title { font-size:0.9rem; font-weight:700; color:var(--text); }
+.insight-body { font-size:0.82rem; color:var(--text2); line-height:1.65; }
+.insight-body strong { color:var(--text); }
+.insight-tag {
+  display:inline-block; margin-top:10px;
+  font-size:0.71rem; font-weight:700; padding:3px 9px; border-radius:20px;
+}
+.tag-red { background:rgba(239,68,68,0.15); color:var(--red); }
+.tag-green { background:rgba(34,197,94,0.15); color:var(--green); }
+.tag-blue { background:rgba(59,130,246,0.15); color:var(--blue2); }
+.tag-orange { background:rgba(249,115,22,0.15); color:var(--orange); }
+
+/* GAUGE */
+.gauge-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; }
+.gauge-card {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:var(--radius); padding:18px; text-align:center;
+  transition:all 0.2s;
+}
+.gauge-card:hover { background:var(--card-hover); }
+.gauge-num { font-size:2.4rem; font-weight:800; margin-bottom:4px; }
+.gauge-label { font-size:0.77rem; color:var(--text2); line-height:1.4; }
+
+/* PROGRESS BAR */
+.prog-list { display:flex; flex-direction:column; gap:12px; }
+.prog-item { }
+.prog-labels { display:flex; justify-content:space-between; font-size:0.8rem; margin-bottom:5px; }
+.prog-labels .prog-name { color:var(--text2); }
+.prog-labels .prog-pct { font-weight:700; color:var(--text); }
+.prog-track { height:8px; background:var(--bg3); border-radius:4px; overflow:hidden; }
+.prog-fill { height:100%; border-radius:4px; transition:width 1.2s cubic-bezier(0.4,0,0.2,1); }
+
+/* MAP */
+#map { height:480px; border-radius:10px; }
+.map-legend {
+  display:flex; flex-wrap:wrap; gap:14px; padding:14px 0 0;
+  border-top:1px solid var(--border); margin-top:14px;
+}
+.leg-item { display:flex; align-items:center; gap:7px; font-size:0.8rem; color:var(--text2); }
+.leg-dot { width:11px; height:11px; border-radius:50%; }
+
+/* NOTIFICATION BANNER */
+.stat-banner {
+  background:linear-gradient(135deg,rgba(59,130,246,0.12),rgba(20,184,166,0.08));
+  border:1px solid rgba(59,130,246,0.25);
+  border-radius:var(--radius); padding:16px 20px;
+  display:flex; align-items:center; gap:14px; margin-bottom:20px;
+}
+.stat-banner .banner-icon { font-size:24px; }
+.stat-banner .banner-text h3 { font-size:0.9rem; font-weight:700; }
+.stat-banner .banner-text p { font-size:0.8rem; color:var(--text2); margin-top:2px; }
+
+/* SEPARATOR */
+.section-sep { border:none; border-top:1px solid var(--border); margin:22px 0; }
+
+/* Scrollbar track */
+.content { scrollbar-gutter: stable; }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   MOBILE — Off-canvas sidebar
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+#sidebar-backdrop {
+  display:none;
+  position:fixed; inset:0;
+  background:rgba(0,0,0,0.55);
+  z-index:998;
+  transition:opacity 0.3s;
+}
+@media (max-width:768px) {
+  .sidebar {
+    position:fixed; left:-280px; top:0; bottom:0;
+    z-index:999; width:260px; min-width:260px;
+  }
+  .sidebar.mobile-open { left:0; }
+  .sidebar.collapsed { width:260px; min-width:260px; }
+  .sidebar.collapsed .nav-label,
+  .sidebar.collapsed .nav-badge,
+  .sidebar.collapsed .logo-text,
+  .sidebar.collapsed .sidebar-section-label { display:flex; opacity:1; }
+  .sidebar.collapsed .nav-badge { display:inline-block; }
+  .sidebar.collapsed .nav-item:hover::after { display:none; }
+  #sidebar-backdrop { display:block; opacity:0; pointer-events:none; }
+  #sidebar-backdrop.visible { opacity:1; pointer-events:auto; }
+  .charts-grid { grid-template-columns:1fr; }
+  .kpi-grid { grid-template-columns:repeat(2,1fr); }
+  .topbar { padding:0 14px; gap:10px; }
+  .topbar-sub { display:none; }
+  .topbar-right { gap:8px; }
+  .content { padding:14px; }
+}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<!-- MOBILE BACKDROP -->
+<div id="sidebar-backdrop" onclick="closeSidebar()"></div>
+
+<!-- ━━━━━━ SIDEBAR ━━━━━━ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo" onclick="toggleSidebar()">
+    <div class="logo-icon">🏘️</div>
+    <div class="logo-text">
+      <h2>JAC Zipaquirá</h2>
+      <p>Diagnóstico 2025-2026</p>
+    </div>
+  </div>
+
+  <div style="overflow-y:auto; flex:1; padding-bottom:20px;">
+    <div class="sidebar-section-label">Módulos</div>
+
+    <div class="nav-item active" data-tip="Resumen" onclick="navTo('resumen',this)">
+      <span class="nav-icon">📊</span>
+      <span class="nav-label">Resumen General</span>
+      <span class="nav-badge">6</span>
+    </div>
+    <div class="nav-item" data-tip="Demografía" onclick="navTo('demografico',this)">
+      <span class="nav-icon">👥</span>
+      <span class="nav-label">Perfil Demográfico</span>
+    </div>
+    <div class="nav-item" data-tip="Participación" onclick="navTo('participacion',this)">
+      <span class="nav-icon">🤝</span>
+      <span class="nav-label">Participación JAC</span>
+    </div>
+    <div class="nav-item" data-tip="Percepción" onclick="navTo('percepcion',this)">
+      <span class="nav-icon">💬</span>
+      <span class="nav-label">Confianza y Percepción</span>
+    </div>
+    <div class="nav-item" data-tip="Institucional" onclick="navTo('institucional',this)">
+      <span class="nav-icon">🏛️</span>
+      <span class="nav-label">Capacidad Institucional</span>
+    </div>
+    <div class="nav-item" data-tip="Infraestructura" onclick="navTo('infraestructura',this)">
+      <span class="nav-icon">🏗️</span>
+      <span class="nav-label">Infraestructura JAC</span>
+    </div>
+    <div class="nav-item" data-tip="Mapa" onclick="navTo('mapa',this)">
+      <span class="nav-icon">🗺️</span>
+      <span class="nav-label">Mapa Territorial</span>
+    </div>
+
+    <hr class="section-sep" style="margin:12px 12px;">
+    <div class="sidebar-section-label">Datos</div>
+    <div class="nav-item" data-tip="Fuentes">
+      <span class="nav-icon">📋</span>
+      <span class="nav-label">Fuentes de datos</span>
+      <span class="nav-badge" style="background:var(--teal)">4</span>
+    </div>
+  </div>
+</aside>
+
+<!-- ━━━━━━ MAIN ━━━━━━ -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-toggle" onclick="toggleSidebar()">☰</div>
+    <div>
+      <div class="topbar-title" id="topbar-title">Resumen General</div>
+      <div class="topbar-sub">Juntas de Acción Comunal · Zipaquirá, Cundinamarca</div>
+    </div>
+    <div class="topbar-right">
+      <!-- Filtro zona -->
+      <div style="position:relative;">
+        <div class="filter-btn" id="filterBtn" onclick="toggleFilter()">
+          <div class="filter-dot"></div>
+          <span>Zona</span>
+          <span class="filter-arrow">▼</span>
+        </div>
+        <div class="dropdown-menu" id="filterMenu" style="display:none;">
+          <div class="dm-header">Zona de residencia</div>
+          <label><input type="checkbox" id="f-urbana" checked onchange="applyFilter()"> 🏙️ Casco Urbano</label>
+          <label><input type="checkbox" id="f-rural" checked onchange="applyFilter()"> 🌿 Zona Rural</label>
+          <label><input type="checkbox" id="f-ph" checked onchange="applyFilter()"> 🏢 Propiedad Horizontal</label>
+        </div>
+      </div>
+      <!-- Filtro edad -->
+      <div style="position:relative;">
+        <div class="filter-btn" id="filterBtn2" onclick="toggleFilter2()">
+          <span>👤 Edad</span>
+          <span class="filter-arrow">▼</span>
+        </div>
+        <div class="dropdown-menu" id="filterMenu2" style="display:none; width:190px;">
+          <div class="dm-header">Grupo de edad</div>
+          <label><input type="checkbox" id="f-edad1" checked onchange="applyFilter()"> 🟢 18-28 años</label>
+          <label><input type="checkbox" id="f-edad2" checked onchange="applyFilter()"> 🔵 29-45 años</label>
+          <label><input type="checkbox" id="f-edad3" checked onchange="applyFilter()"> 🟡 46-60 años</label>
+          <label><input type="checkbox" id="f-edad4" checked onchange="applyFilter()"> 🟠 60+ años</label>
+        </div>
+      </div>
+      <div id="filter-count-badge" style="background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);border-radius:8px;padding:6px 12px;font-size:0.75rem;font-weight:700;color:var(--green);">
+        ● 227 encuestas
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGES -->
+  <div class="content" id="content">
+
+    <!-- ══════════ RESUMEN ══════════ -->
+    <div class="page active" id="page-resumen">
+      <div class="page-title">
+        <div class="title-icon blue">📊</div>
+        <div>
+          <h2>Resumen General</h2>
+          <p>Diagnóstico integral sobre Juntas de Acción Comunal de Zipaquirá · 2025-2026</p>
+        </div>
+      </div>
+
+      <div class="stat-banner">
+        <div class="banner-icon">🔔</div>
+        <div class="banner-text">
+          <h3>Diagnóstico en 3 instrumentos combinados: KoBo GPS (230), Diagnóstico Participativo (50) y Fortalecimiento JAC (57)</h3>
+          <p>Los datos excluyen la política pública de jóvenes y se enfocan exclusivamente en las JAC de Zipaquirá</p>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card c-blue"><div class="kpi-icon">📋</div><div class="kpi-label">Total encuestas</div><div class="kpi-val" data-target="347">0</div><div class="kpi-sub">3 instrumentos aplicados</div></div>
+        <div class="kpi-card c-blue"><div class="kpi-icon">📍</div><div class="kpi-label">Georreferenciadas</div><div class="kpi-val" data-target="227">0</div><div class="kpi-sub">con coordenadas GPS</div></div>
+        <div class="kpi-card c-red"><div class="kpi-icon">❌</div><div class="kpi-label">Sin confianza JAC</div><div class="kpi-val" id="kpi-baja-confianza">65%</div><div class="kpi-sub">ninguna o poca confianza</div></div>
+        <div class="kpi-card c-red"><div class="kpi-icon">🚫</div><div class="kpi-label">No asisten a JAC</div><div class="kpi-val" id="kpi-no-asiste">69%</div><div class="kpi-sub">ninguna reunión en el año</div></div>
+        <div class="kpi-card c-orange"><div class="kpi-icon">📵</div><div class="kpi-label">Sin tecnología</div><div class="kpi-val">82%</div><div class="kpi-sub">de JAC sin herramientas</div></div>
+        <div class="kpi-card c-orange"><div class="kpi-icon">🏚️</div><div class="kpi-label">Sin espacio físico</div><div class="kpi-val">47%</div><div class="kpi-sub">se reúnen en la calle</div></div>
+        <div class="kpi-card c-green"><div class="kpi-icon">✅</div><div class="kpi-label">Con RUT + Cuenta</div><div class="kpi-val">63%</div><div class="kpi-sub">listas para convenios</div></div>
+        <div class="kpi-card c-purple"><div class="kpi-icon">🏘️</div><div class="kpi-label">Barrios cubiertos</div><div class="kpi-val" data-target="42">0</div><div class="kpi-sub">en el casco urbano</div></div>
+      </div>
+
+      <div class="insights-grid">
+        <div class="insight-card">
+          <div class="insight-top"><span class="insight-emoji">⚠️</span><span class="insight-title">Participación crítica</span></div>
+          <div class="insight-body">El <strong>69% de la ciudadanía no asistió a ninguna reunión JAC</strong> en el último año. Solo el 9% participó activamente. La desconexión comunidad-JAC es la brecha más urgente.</div>
+          <span class="insight-tag tag-red">Prioridad alta</span>
+        </div>
+        <div class="insight-card">
+          <div class="insight-top"><span class="insight-emoji">📵</span><span class="insight-title">Brecha digital crítica</span></div>
+          <div class="insight-body">El <strong>82% de las JAC no tiene ninguna herramienta digital</strong>. La comunicación depende del "boca a boca" en el 45% de los casos. La modernización es urgente.</div>
+          <span class="insight-tag tag-orange">Necesidad urgente</span>
+        </div>
+        <div class="insight-card">
+          <div class="insight-top"><span class="insight-emoji">💰</span><span class="insight-title">Precariedad financiera</span></div>
+          <div class="insight-body">El <strong>61% de las JAC no maneja presupuesto o está en déficit</strong>. El 62% de los recursos vienen de autogestión. Solo 2 JAC tienen contratos con el Estado.</div>
+          <span class="insight-tag tag-red">Brecha crítica</span>
+        </div>
+        <div class="insight-card">
+          <div class="insight-top"><span class="insight-emoji">✅</span><span class="insight-title">Fortaleza legal</span></div>
+          <div class="insight-body">El <strong>63% tiene Auto de Reconocimiento vigente + RUT + cuenta bancaria</strong> activos. Esta base legal sólida permite articularse con convenios institucionales.</div>
+          <span class="insight-tag tag-green">Fortaleza clave</span>
+        </div>
+        <div class="insight-card">
+          <div class="insight-top"><span class="insight-emoji">👨‍🦳</span><span class="insight-title">Envejecimiento del liderazgo</span></div>
+          <div class="insight-body">Entre líderes encuestados, <strong>solo 1 persona (2%) tiene entre 14-28 años</strong>. El 79% de la ciudadanía percibe falta de participación juvenil en las JAC.</div>
+          <span class="insight-tag tag-orange">Relevo generacional</span>
+        </div>
+        <div class="insight-card">
+          <div class="insight-top"><span class="insight-emoji">🏛️</span><span class="insight-title">Débil respaldo institucional</span></div>
+          <div class="insight-body">El <strong>70% de los líderes reporta capacitación esporádica o nula</strong> por parte de la Alcaldía. El 42% solo conoce "algunos programas" sin saber cómo acceder.</div>
+          <span class="insight-tag tag-blue">Oportunidad mejora</span>
+        </div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div><h3>Confianza en la JAC del barrio</h3><p>KoBo Survey · filtros aplicados</p></div>
+            <span class="chart-tag" id="tag-trust-res">🔴 65% baja confianza</span>
+          </div>
+          <div id="ch-trust-res"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <div><h3>Principal obstáculo de las JAC</h3><p>KoBo Survey · filtros aplicados</p></div>
+            <span class="chart-tag">Múltiple selección</span>
+          </div>
+          <div id="ch-obs-res"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <div><h3>¿Qué le falta a su JAC?</h3><p>Fortalecimiento JAC · n=57 líderes</p></div>
+            <span class="chart-tag">Líderes · dato estático</span>
+          </div>
+          <div id="ch-falta-res"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <div><h3>Asistencia a reuniones JAC</h3><p>KoBo Survey · filtros aplicados</p></div>
+            <span class="chart-tag" id="tag-asist-res">🚨 69% ninguna</span>
+          </div>
+          <div id="ch-asist-res"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ DEMOGRÁFICO ══════════ -->
+    <div class="page" id="page-demografico">
+      <div class="page-title">
+        <div class="title-icon teal">👥</div>
+        <div><h2>Perfil Demográfico</h2><p>Composición por edad, género, educación y zona de los encuestados</p></div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card c-blue"><div class="kpi-icon">📱</div><div class="kpi-label">KoBo (ciudadanía)</div><div class="kpi-val">230</div><div class="kpi-sub">georreferenciadas</div></div>
+        <div class="kpi-card c-blue"><div class="kpi-icon">💪</div><div class="kpi-label">Líderes JAC</div><div class="kpi-val">57</div><div class="kpi-sub">Fortalecimiento JAC</div></div>
+        <div class="kpi-card c-blue"><div class="kpi-icon">📝</div><div class="kpi-label">Diagnóstico participativo</div><div class="kpi-val">50</div><div class="kpi-sub">con líderes comunales</div></div>
+        <div class="kpi-card c-orange"><div class="kpi-icon">🌆</div><div class="kpi-label">Zona urbana</div><div class="kpi-val">91%</div><div class="kpi-sub">del casco urbano (KoBo)</div></div>
+        <div class="kpi-card c-purple"><div class="kpi-icon">👩</div><div class="kpi-label">Mujeres (ciudadanía)</div><div class="kpi-val">62%</div><div class="kpi-sub">142 de 228 respuestas</div></div>
+        <div class="kpi-card c-red"><div class="kpi-icon">🧓</div><div class="kpi-label">Edad 46+ años</div><div class="kpi-val">53%</div><div class="kpi-sub">ciudadanía encuestada</div></div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-header"><div><h3>Edad de la ciudadanía encuestada</h3><p>KoBo Survey · filtros aplicados</p></div></div>
+          <div id="ch-edad-k"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><div><h3>Género de la ciudadanía</h3><p>KoBo Survey · filtros aplicados</p></div></div>
+          <div id="ch-genero-k"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><div><h3>Edad de líderes JAC</h3><p>Fortalecimiento · n=57</p></div><span class="chart-tag">⚠️ Solo 1 joven · dato estático</span></div>
+          <div id="ch-edad-f"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><div><h3>Nivel educativo de líderes</h3><p>Fortalecimiento · n=57</p></div><span class="chart-tag">dato estático</span></div>
+          <div id="ch-educ-f"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><div><h3>Zona de residencia (ciudadanía)</h3><p>KoBo Survey · filtros aplicados</p></div></div>
+          <div id="ch-zona-k"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><div><h3>Zona de las JAC (líderes)</h3><p>Fortalecimiento · n=57</p></div><span class="chart-tag">dato estático</span></div>
+          <div id="ch-zona-f"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ PARTICIPACIÓN ══════════ -->
+    <div class="page" id="page-participacion">
+      <div class="page-title">
+        <div class="title-icon green">🤝</div>
+        <div><h2>Participación en las JAC</h2><p>Asistencia a reuniones, roles, motivaciones y barreras de participación</p></div>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi-card c-red"><div class="kpi-icon">🚫</div><div class="kpi-label">No asistieron</div><div class="kpi-val" id="kpi-p-ninguna">69%</div><div class="kpi-sub">del grupo seleccionado</div></div>
+        <div class="kpi-card c-orange"><div class="kpi-icon">📅</div><div class="kpi-label">1-2 veces</div><div class="kpi-val" id="kpi-p-12">21%</div><div class="kpi-sub">del grupo seleccionado</div></div>
+        <div class="kpi-card c-green"><div class="kpi-icon">✅</div><div class="kpi-label">3+ veces</div><div class="kpi-val" id="kpi-p-3mas">9%</div><div class="kpi-sub">del grupo seleccionado</div></div>
+        <div class="kpi-card c-blue"><div class="kpi-icon">📖</div><div class="kpi-label">Afiliados JAC (DP)</div><div class="kpi-val">84%</div><div class="kpi-sub">42 de 50 respuestas</div></div>
+        <div class="kpi-card c-purple"><div class="kpi-icon">👑</div><div class="kpi-label">Dignatarios</div><div class="kpi-val">70%</div><div class="kpi-sub">de líderes encuestados</div></div>
+        <div class="kpi-card c-orange"><div class="kpi-icon">📣</div><div class="kpi-label">Participa en planeación</div><div class="kpi-val">28%</div><div class="kpi-sub">llevan propuestas</div></div>
+      </div>
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-header"><div><h3>Asistencia a reuniones JAC (último año)</h3><p>KoBo Survey · filtros aplicados</p></div><span class="chart-tag">Baja asistencia</span></div>
+          <div id="ch-asist-det"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><div><h3>Razón para no participar</h3><p>KoBo · filtros aplicados</p></div></div>
+          <div id="ch-razones"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><div><h3>Rol en la organización comunal</h3><p>Fortalecimiento · n=57 líderes</p></div><span class="chart-tag">dato estático</span></div>
+          <div id="ch-rol"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><div><h3>Años vinculado al trabajo comunitario</h3><p>Fortalecimiento · n=57 líderes</p></div><span class="chart-tag">dato estático</span></div>
+          <div id="ch-tiempo"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><div><h3>Participación en espacios de planeación</h3><p>Fortalecimiento · n=57 líderes</p></div><span class="chart-tag">dato estático</span></div>
+          <div id="ch-plan"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><div><h3>¿Qué motivaría mayor participación?</h3><p>KoBo Survey · filtros aplicados</p></div></div>
+          <div id="ch-motiv"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ PERCEPCIÓN ══════════ -->
+    <div class="page" id="page-percepcion">
+      <div class="page-title">
+        <div class="title-icon orange">💬</div>
+        <div><h2>Confianza y Percepción</h2><p>Cómo percibe la comunidad a su JAC y a la Alcaldía</p></div>
+      </div>
+
+      <div class="gauge-grid" id="gauges-percepcion" style="margin-bottom:20px;">
+        <div class="gauge-card"><div class="gauge-num" id="g-ninguna" style="color:var(--red);">39%</div><div class="gauge-label">Ninguna<br>confianza</div></div>
+        <div class="gauge-card"><div class="gauge-num" id="g-poca" style="color:var(--orange);">26%</div><div class="gauge-label">Poca<br>confianza</div></div>
+        <div class="gauge-card"><div class="gauge-num" id="g-alguna" style="color:var(--yellow);">22%</div><div class="gauge-label">Alguna<br>confianza</div></div>
+        <div class="gauge-card"><div class="gauge-num" id="g-mucha" style="color:var(--green);">13%</div><div class="gauge-label">Mucha<br>confianza</div></div>
+        <div class="gauge-card"><div class="gauge-num" style="color:var(--text3);">27%</div><div class="gauge-label">No sabe / sin resp.<br>(calif. Alcaldía)</div></div>
+      </div>
+
+      <div class="chart-card full" style="margin-bottom:18px;">
+        <div class="chart-header"><div><h3>Nivel de confianza en la JAC por barrio</h3><p>KoBo Survey · filtros aplicados</p></div></div>
+        <div id="ch-trust-det"></div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-header"><div><h3>¿La JAC logra resultados visibles?</h3><p>KoBo Survey · filtros aplicados</p></div></div>
+          <div id="ch-resultados"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><div><h3>Calificación de la Alcaldía</h3><p>KoBo Survey · filtros aplicados</p></div></div>
+          <div id="ch-alcaldia-k"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><div><h3>¿Por qué medio se enteran de la JAC?</h3><p>KoBo Survey · filtros aplicados</p></div></div>
+          <div id="ch-medio"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><div><h3>¿Tecnología aumentaría participación?</h3><p>KoBo Survey · filtros aplicados</p></div></div>
+          <div id="ch-tec-k"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ INSTITUCIONAL ══════════ -->
+    <div class="page" id="page-institucional">
+      <div class="page-title">
+        <div class="title-icon purple">🏛️</div>
+        <div><h2>Capacidad Institucional</h2><p>Evaluación de la Secretaría de Gobierno y relación JAC–Alcaldía</p></div>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi-card c-blue"><div class="kpi-icon">🧑‍💼</div><div class="kpi-label">Funcionarios encuestados</div><div class="kpi-val">10</div><div class="kpi-sub">Secretaría de Gobierno</div></div>
+        <div class="kpi-card c-red"><div class="kpi-icon">💸</div><div class="kpi-label">Recursos presupuestales</div><div class="kpi-val">1.9/5</div><div class="kpi-sub">Dimensión más débil</div></div>
+        <div class="kpi-card c-green"><div class="kpi-icon">📄</div><div class="kpi-label">Procedimientos documentados</div><div class="kpi-val">3.5/5</div><div class="kpi-sub">Dimensión más fuerte</div></div>
+        <div class="kpi-card c-orange"><div class="kpi-icon">⚖️</div><div class="kpi-label">Promedio general</div><div class="kpi-val">2.7/5</div><div class="kpi-sub">capacidad institucional</div></div>
+      </div>
+
+      <div class="chart-card full" style="margin-bottom:18px;">
+        <div class="chart-header">
+          <div><h3>Capacidades institucionales — Secretaría de Gobierno</h3><p>Escala Likert 1–5 · n=10 funcionarios · línea punteada = umbral 3.0</p></div>
+          <span class="chart-tag">dato estático · n=10</span>
+        </div>
+        <div id="ch-cap-bar"></div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-header"><div><h3>¿La Alcaldía capacita a los comunales?</h3><p>Fortalecimiento · n=57 líderes</p></div><span class="chart-tag">dato estático</span></div>
+          <div id="ch-cap-alc"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><div><h3>¿Conocen la oferta institucional?</h3><p>Fortalecimiento · n=57 líderes</p></div><span class="chart-tag">dato estático</span></div>
+          <div id="ch-oferta"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><div><h3>Estado legal de las JAC</h3><p>Fortalecimiento · n=57 líderes</p></div><span class="chart-tag">dato estático</span></div>
+          <div id="ch-legal"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><div><h3>RUT y cuenta bancaria activos</h3><p>Fortalecimiento · n=57 líderes</p></div><span class="chart-tag">dato estático</span></div>
+          <div id="ch-rut"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ INFRAESTRUCTURA ══════════ -->
+    <div class="page" id="page-infraestructura">
+      <div class="page-title">
+        <div class="title-icon red">🏗️</div>
+        <div><h2>Infraestructura de las JAC</h2><p>Espacios físicos, tecnología y recursos económicos de las Juntas</p></div>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi-card c-red"><div class="kpi-icon">🏚️</div><div class="kpi-label">Sin espacio propio</div><div class="kpi-val">47%</div><div class="kpi-sub">calle o parque</div></div>
+        <div class="kpi-card c-red"><div class="kpi-icon">💻</div><div class="kpi-label">Sin tecnología</div><div class="kpi-val">82%</div><div class="kpi-sub">ninguna herramienta</div></div>
+        <div class="kpi-card c-red"><div class="kpi-icon">📉</div><div class="kpi-label">Sin presupuesto</div><div class="kpi-val">63%</div><div class="kpi-sub">déficit o caja en ceros</div></div>
+        <div class="kpi-card c-orange"><div class="kpi-icon">🎡</div><div class="kpi-label">Autogestión</div><div class="kpi-val">61%</div><div class="kpi-sub">bazares, rifas, alquiler</div></div>
+        <div class="kpi-card c-green"><div class="kpi-icon">🏛️</div><div class="kpi-label">Salón propio (buen estado)</div><div class="kpi-val">26%</div><div class="kpi-sub">15 de 57 JAC</div></div>
+        <div class="kpi-card c-blue"><div class="kpi-icon">🌐</div><div class="kpi-label">Equipos + internet</div><div class="kpi-val">7%</div><div class="kpi-sub">solo 4 de 57 JAC</div></div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-header"><div><h3>Espacio físico para reuniones</h3><p>Fortalecimiento · n=57</p></div><span class="chart-tag">dato estático</span></div>
+          <div id="ch-espacio"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><div><h3>Herramientas tecnológicas</h3><p>Fortalecimiento · n=57</p></div><span class="chart-tag">dato estático</span></div>
+          <div id="ch-tec-f"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><div><h3>Origen de los recursos económicos</h3><p>Fortalecimiento · n=57</p></div><span class="chart-tag">dato estático</span></div>
+          <div id="ch-recursos"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><div><h3>Suficiencia del presupuesto</h3><p>Fortalecimiento · n=57</p></div><span class="chart-tag">dato estático</span></div>
+          <div id="ch-presup"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><div><h3>Área prioritaria de capacitación</h3><p>KoBo · filtros aplicados</p></div></div>
+          <div id="ch-cap-area"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><div><h3>Instalaciones físicas del sector</h3><p>KoBo · filtros aplicados</p></div></div>
+          <div id="ch-inst"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ MAPA ══════════ -->
+    <div class="page" id="page-mapa">
+      <div class="page-title">
+        <div class="title-icon yellow">🗺️</div>
+        <div><h2>Mapa Territorial</h2><p>Distribución geográfica y nivel de confianza en las JAC por barrio</p></div>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi-card c-blue"><div class="kpi-icon">📍</div><div class="kpi-label">Puntos GPS (filtro)</div><div class="kpi-val" id="kpi-map-pts">227</div><div class="kpi-sub">georreferenciados</div></div>
+        <div class="kpi-card c-blue"><div class="kpi-icon">🏘️</div><div class="kpi-label">Barrio más encuestado</div><div class="kpi-val" style="font-size:1rem;">Comuneros 2</div><div class="kpi-sub">zona urbana</div></div>
+        <div class="kpi-card c-red"><div class="kpi-icon">❌</div><div class="kpi-label">Sin confianza (mapa)</div><div class="kpi-val" id="kpi-map-red">39%</div><div class="kpi-sub">puntos rojos</div></div>
+        <div class="kpi-card c-green"><div class="kpi-icon">🌿</div><div class="kpi-label">Puntos rurales</div><div class="kpi-val">9</div><div class="kpi-sub">zona rural cubierta</div></div>
+      </div>
+
+      <div class="chart-card full" style="margin-bottom:18px;">
+        <div class="chart-header">
+          <div><h3>Mapa de confianza en la JAC por barrio/vereda</h3><p>Cada punto = 1 encuesta · Color = nivel de confianza · Haz clic para ver detalles</p></div>
+        </div>
+        <div id="map"></div>
+        <div class="map-legend">
+          <span style="font-size:0.8rem;font-weight:700;color:var(--text2);margin-right:6px;">Nivel de confianza:</span>
+          <div class="leg-item"><div class="leg-dot" style="background:#ef4444;"></div>Ninguna confianza</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#f97316;"></div>Poca confianza</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#eab308;"></div>Alguna confianza</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#22c55e;"></div>Mucha confianza</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#64748b;"></div>Sin dato</div>
+        </div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-header"><div><h3>Top barrios por cantidad de respuestas</h3><p>KoBo Survey · filtros aplicados</p></div></div>
+          <div id="ch-barrios"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><div><h3>Confianza en JAC por zona</h3><p>KoBo Survey · filtros aplicados</p></div></div>
+          <div id="ch-conf-zona"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /layout -->
+
+<script>
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// THEME & PLOTLY CONFIG
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const T = {
+  bg: 'rgba(0,0,0,0)', grid: 'rgba(255,255,255,0.06)',
+  text: '#94a3b8', text2: '#e2e8f0',
+  font: {family:'Segoe UI, system-ui, sans-serif', size:12, color:'#94a3b8'},
+  blue: '#3b82f6', teal: '#14b8a6', green: '#22c55e',
+  yellow: '#eab308', orange: '#f97316', red: '#ef4444', purple: '#a855f7',
+};
+const PALETTE = {
+  trust: ['#ef4444','#f97316','#eab308','#22c55e','#64748b'],
+  blue5: ['#1d4ed8','#2563eb','#3b82f6','#60a5fa','#93c5fd'],
+  mixed: ['#3b82f6','#14b8a6','#22c55e','#eab308','#f97316','#ef4444','#a855f7','#ec4899'],
+};
+const CFG = {responsive:true, displayModeBar:false};
+
+function layout(opts={}) {
+  return {
+    font:T.font, paper_bgcolor:T.bg, plot_bgcolor:T.bg,
+    margin:opts.margin||{l:8,r:30,t:10,b:50},
+    xaxis:{gridcolor:T.grid,zeroline:false,tickfont:{color:T.text},...(opts.xaxis||{})},
+    yaxis:{gridcolor:T.grid,zeroline:false,tickfont:{color:T.text},automargin:true,...(opts.yaxis||{})},
+    height:opts.height||270, showlegend:opts.showlegend||false,
+    legend:opts.legend||{}, ...(opts.extra||{})
+  };
+}
+function hbar(labels, vals, colors) {
+  return [{type:'bar',orientation:'h',y:labels,x:vals,
+    marker:{color:Array.isArray(colors)?colors:vals.map((_,i)=>colors||PALETTE.blue5[i%5]),opacity:0.9},
+    text:vals,textposition:'outside',textfont:{color:T.text2,size:12,family:'Segoe UI'},
+    hovertemplate:'%{y}: <b>%{x}</b><extra></extra>',cliponaxis:false}];
+}
+function vbar(labels, vals, colors) {
+  return [{type:'bar',orientation:'v',x:labels,y:vals,
+    marker:{color:Array.isArray(colors)?colors:PALETTE.blue5},
+    text:vals,textposition:'outside',textfont:{color:T.text2,size:12},
+    hovertemplate:'%{x}: <b>%{y}</b><extra></extra>',cliponaxis:false}];
+}
+function donut(labels, vals, colors) {
+  return {
+    data:[{type:'pie',labels,values:vals,hole:0.52,
+      marker:{colors:colors||PALETTE.mixed,line:{color:'rgba(0,0,0,0.3)',width:1.5}},
+      textinfo:'percent',hovertemplate:'%{label}: <b>%{value}</b> (%{percent})<extra></extra>',
+      textfont:{color:'white',size:11}}],
+    layout:{...layout({height:280,margin:{l:10,r:10,t:10,b:10}}),
+      showlegend:true,
+      legend:{x:0.5,xanchor:'center',y:-0.1,orientation:'h',font:{color:T.text,size:10}}}
+  };
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// RAW DATA — 227 KoBo survey records
+// Fields: zona, barrio, lat, lon, edad, genero, confianza,
+//         asistencia, obstaculo, calif_alcaldia, medio_info,
+//         motivacion, tecnologia, inst_adecuada, razon_np
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const RAW_DATA = [
+  {zona:'Casco Urbano',barrio:'Comuneros 2',lat:5.0266,lon:-74.000252,edad:'18-28',genero:'Femenino',confianza:'Mucha confianza',asistencia:'A más de 3',obstaculo:'Falta capacitación',calif_alcaldia:'Buena',medio_info:'Redes sociales',motivacion:'Líderes confiables',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'La Esmeralda',lat:5.029292,lon:-74.000285,edad:'46-60',genero:'Femenino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Regular',medio_info:'Vecinos (boca a boca)',motivacion:'Más apoyo Alcaldía',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'San Juanito',lat:5.029789,lon:-73.999575,edad:'60+',genero:'Masculino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta capacitación',calif_alcaldia:'Mala',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'Tal vez',inst_adecuada:'Sí, adecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'San Rafael',lat:5.029535,lon:-74.000324,edad:'46-60',genero:'Femenino',confianza:'Mucha confianza',asistencia:'A 1 o 2',obstaculo:'Falta recursos',calif_alcaldia:'Mala',medio_info:'Ninguno',motivacion:'Conocer mis derechos',tecnologia:'No haría diferencia',inst_adecuada:'No, inadecuadas',razon_np:'No le veo utilidad'},
+  {zona:'Casco Urbano',barrio:'La Florida',lat:5.029155,lon:-74.002052,edad:'60+',genero:'Femenino',confianza:'Mucha confianza',asistencia:'A ninguna',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'No sabe / sin resp.',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'No haría diferencia',inst_adecuada:'No, inadecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Comuneros 1',lat:5.026159,lon:-74.000795,edad:'60+',genero:'Masculino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta recursos',calif_alcaldia:'No sabe / sin resp.',medio_info:'Carteles',motivacion:'Líderes confiables',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Prados del Mirador',lat:5.03423,lon:-73.997322,edad:'46-60',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Buena',medio_info:'Vecinos (boca a boca)',motivacion:'Conocer mis derechos',tecnologia:'Tal vez',inst_adecuada:'Sí, adecuadas',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'San Carlos',lat:5.032265,lon:-73.996902,edad:'46-60',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Regular',medio_info:'WhatsApp',motivacion:'Líderes confiables',tecnologia:'No haría diferencia',inst_adecuada:'No, inadecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Potosí 3',lat:5.027001,lon:-73.999781,edad:'46-60',genero:'Femenino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Buena',medio_info:'Ninguno',motivacion:'Líderes confiables',tecnologia:'Sí, facilitaría',inst_adecuada:'Regular',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'Antonio Nariño',lat:5.024359,lon:-73.998906,edad:'29-45',genero:'Masculino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Buena',medio_info:'Vecinos (boca a boca)',motivacion:'Más apoyo Alcaldía',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'No le veo utilidad'},
+  {zona:'Casco Urbano',barrio:'El Porvenir',lat:5.024967,lon:-74.001409,edad:'18-28',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Regular',medio_info:'Redes sociales',motivacion:'Conocer mis derechos',tecnologia:'No haría diferencia',inst_adecuada:'No, inadecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'El Carmelo',lat:5.022733,lon:-74.000269,edad:'46-60',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta recursos',calif_alcaldia:'No sabe / sin resp.',medio_info:'Vecinos (boca a boca)',motivacion:'Líderes confiables',tecnologia:'Tal vez',inst_adecuada:'No, inadecuadas',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'Los Andes',lat:5.025225,lon:-74.003301,edad:'60+',genero:'Femenino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Regular',medio_info:'Ninguno',motivacion:'Líderes confiables',tecnologia:'Sí, facilitaría',inst_adecuada:'Regular',razon_np:'Desconfianza en líderes'},
+  {zona:'Rural',barrio:'Río Frío Occidental',lat:4.950739,lon:-74.000612,edad:'60+',genero:'Masculino',confianza:'Mucha confianza',asistencia:'A ninguna',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Regular',medio_info:'Carteles',motivacion:'Ver resultados concretos',tecnologia:'Tal vez',inst_adecuada:'Regular',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'Nuevo Horizonte',lat:5.030799,lon:-74.005034,edad:'60+',genero:'Femenino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Regular',medio_info:'Vecinos (boca a boca)',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Rincón del Zipa',lat:5.035588,lon:-73.995833,edad:'29-45',genero:'Masculino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Buena',medio_info:'Redes sociales',motivacion:'Más apoyo Alcaldía',tecnologia:'Sí, facilitaría',inst_adecuada:'Regular',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'Portachuelo',lat:5.027027,lon:-74.002836,edad:'18-28',genero:'Femenino',confianza:'Mucha confianza',asistencia:'A ninguna',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Regular',medio_info:'Vecinos (boca a boca)',motivacion:'Conocer mis derechos',tecnologia:'No haría diferencia',inst_adecuada:'Sí, adecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'El Progreso',lat:5.025583,lon:-74.001059,edad:'29-45',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Mala',medio_info:'Vecinos (boca a boca)',motivacion:'Líderes confiables',tecnologia:'No haría diferencia',inst_adecuada:'Sí, adecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'La Esperanza',lat:5.031009,lon:-73.999246,edad:'29-45',genero:'Femenino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta capacitación',calif_alcaldia:'No sabe / sin resp.',medio_info:'WhatsApp',motivacion:'Líderes confiables',tecnologia:'No haría diferencia',inst_adecuada:'No, inadecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'San Isidro',lat:5.027775,lon:-73.997882,edad:'60+',genero:'Masculino',confianza:'Poca confianza',asistencia:'A 1 o 2',obstaculo:'Falta unión',calif_alcaldia:'Mala',medio_info:'WhatsApp',motivacion:'Conocer mis derechos',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'La Primavera',lat:5.029521,lon:-74.000204,edad:'29-45',genero:'Masculino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Buena',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'Los Álamos',lat:5.033358,lon:-73.99643,edad:'18-28',genero:'Femenino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Mala',medio_info:'WhatsApp',motivacion:'Más apoyo Alcaldía',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'Villa Melissa',lat:5.032951,lon:-73.997756,edad:'60+',genero:'Femenino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Regular',medio_info:'WhatsApp',motivacion:'Más apoyo Alcaldía',tecnologia:'Tal vez',inst_adecuada:'Regular',razon_np:'No le veo utilidad'},
+  {zona:'Casco Urbano',barrio:'Potosí 1',lat:5.028863,lon:-74.002707,edad:'29-45',genero:'Masculino',confianza:'Ninguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta unión',calif_alcaldia:'Regular',medio_info:'WhatsApp',motivacion:'Conocer mis derechos',tecnologia:'No haría diferencia',inst_adecuada:'No, inadecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Potosí 2',lat:5.026662,lon:-74.0024,edad:'46-60',genero:'Masculino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Regular',medio_info:'Vecinos (boca a boca)',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'No le veo utilidad'},
+  {zona:'Casco Urbano',barrio:'La Colonia',lat:5.027354,lon:-73.998767,edad:'46-60',genero:'Otro',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta capacitación',calif_alcaldia:'Regular',medio_info:'WhatsApp',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'Conflictos internos'},
+  {zona:'Casco Urbano',barrio:'San Luis',lat:5.030117,lon:-73.999104,edad:'60+',genero:'Femenino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'No sabe / sin resp.',medio_info:'Redes sociales',motivacion:'Líderes confiables',tecnologia:'Tal vez',inst_adecuada:'Sí, adecuadas',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'La Libertad',lat:5.031127,lon:-74.000632,edad:'18-28',genero:'Masculino',confianza:'Ninguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta unión',calif_alcaldia:'No sabe / sin resp.',medio_info:'WhatsApp',motivacion:'Más apoyo Alcaldía',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'Kennedy',lat:5.025944,lon:-74.002072,edad:'46-60',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Mala',medio_info:'Redes sociales',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'Regular',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Ubaté',lat:5.028808,lon:-74.001067,edad:'46-60',genero:'Masculino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Buena',medio_info:'WhatsApp',motivacion:'Líderes confiables',tecnologia:'Tal vez',inst_adecuada:'Sí, adecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'El Palmar',lat:5.024999,lon:-73.999253,edad:'60+',genero:'Masculino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Mala',medio_info:'Vecinos (boca a boca)',motivacion:'Líderes confiables',tecnologia:'No haría diferencia',inst_adecuada:'Sí, adecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'Industrial',lat:5.025096,lon:-74.001188,edad:'29-45',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta recursos',calif_alcaldia:'No sabe / sin resp.',medio_info:'WhatsApp',motivacion:'Conocer mis derechos',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'Santa Isabel',lat:5.027515,lon:-74.000254,edad:'18-28',genero:'Femenino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Buena',medio_info:'Vecinos (boca a boca)',motivacion:'Conocer mis derechos',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Propiedad Horizontal',barrio:'San Isidro PH',lat:5.028227,lon:-73.997515,edad:'18-28',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A más de 3',obstaculo:'Falta recursos',calif_alcaldia:'Excelente',medio_info:'Carteles',motivacion:'Ver resultados concretos',tecnologia:'Tal vez',inst_adecuada:'Sí, adecuadas',razon_np:'No le veo utilidad'},
+  {zona:'Casco Urbano',barrio:'La Paz',lat:5.032469,lon:-73.997528,edad:'29-45',genero:'Masculino',confianza:'Ninguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta recursos',calif_alcaldia:'No sabe / sin resp.',medio_info:'Redes sociales',motivacion:'Ver resultados concretos',tecnologia:'Tal vez',inst_adecuada:'Sí, adecuadas',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'Montoya',lat:5.034471,lon:-73.996647,edad:'18-28',genero:'Femenino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Buena',medio_info:'Vecinos (boca a boca)',motivacion:'Conocer mis derechos',tecnologia:'No haría diferencia',inst_adecuada:'Sí, adecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Propiedad Horizontal',barrio:'Conjunto La Pradera',lat:5.031981,lon:-73.992333,edad:'46-60',genero:'Femenino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Mala',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Conflictos internos'},
+  {zona:'Casco Urbano',barrio:'El Cedro',lat:5.031567,lon:-73.998773,edad:'60+',genero:'Femenino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'No sabe / sin resp.',medio_info:'WhatsApp',motivacion:'Conocer mis derechos',tecnologia:'Tal vez',inst_adecuada:'No, inadecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Comuneros 2',lat:5.025794,lon:-74.001746,edad:'18-28',genero:'Femenino',confianza:'Alguna confianza',asistencia:'A más de 3',obstaculo:'Falta recursos',calif_alcaldia:'No sabe / sin resp.',medio_info:'WhatsApp',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'Regular',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'La Esmeralda',lat:5.029755,lon:-73.998988,edad:'46-60',genero:'Femenino',confianza:'Poca confianza',asistencia:'A 1 o 2',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Regular',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'Regular',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'San Juanito',lat:5.030469,lon:-73.998677,edad:'46-60',genero:'Femenino',confianza:'Alguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta capacitación',calif_alcaldia:'Regular',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'Tal vez',inst_adecuada:'No, inadecuadas',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'San Rafael',lat:5.02916,lon:-74.000452,edad:'46-60',genero:'Masculino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Regular',medio_info:'WhatsApp',motivacion:'Más apoyo Alcaldía',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Propiedad Horizontal',barrio:'San Isidro PH',lat:5.02757,lon:-73.997169,edad:'46-60',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta unión',calif_alcaldia:'No sabe / sin resp.',medio_info:'Vecinos (boca a boca)',motivacion:'Más apoyo Alcaldía',tecnologia:'No haría diferencia',inst_adecuada:'No, inadecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'Comuneros 1',lat:5.025015,lon:-74.000291,edad:'29-45',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A más de 3',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Excelente',medio_info:'Ninguno',motivacion:'Más apoyo Alcaldía',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'Prados del Mirador',lat:5.034397,lon:-73.997411,edad:'46-60',genero:'Masculino',confianza:'Alguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta recursos',calif_alcaldia:'Regular',medio_info:'Vecinos (boca a boca)',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'San Carlos',lat:5.032367,lon:-73.997314,edad:'18-28',genero:'Femenino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta recursos',calif_alcaldia:'No sabe / sin resp.',medio_info:'Redes sociales',motivacion:'Conocer mis derechos',tecnologia:'No haría diferencia',inst_adecuada:'No, inadecuadas',razon_np:'No le veo utilidad'},
+  {zona:'Casco Urbano',barrio:'Potosí 3',lat:5.027473,lon:-74.000219,edad:'60+',genero:'Femenino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta capacitación',calif_alcaldia:'No sabe / sin resp.',medio_info:'Vecinos (boca a boca)',motivacion:'Conocer mis derechos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'Antonio Nariño',lat:5.023211,lon:-73.998917,edad:'29-45',genero:'Femenino',confianza:'Mucha confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Regular',medio_info:'Vecinos (boca a boca)',motivacion:'Conocer mis derechos',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'El Porvenir',lat:5.024219,lon:-74.001953,edad:'29-45',genero:'Masculino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'No sabe / sin resp.',medio_info:'Redes sociales',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'Regular',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'El Carmelo',lat:5.02264,lon:-74.000236,edad:'60+',genero:'Femenino',confianza:'Alguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Mala',medio_info:'WhatsApp',motivacion:'Más apoyo Alcaldía',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'Los Andes',lat:5.025227,lon:-74.003499,edad:'60+',genero:'Femenino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Regular',medio_info:'Vecinos (boca a boca)',motivacion:'Conocer mis derechos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Rural',barrio:'La Granja Rural',lat:5.020278,lon:-73.96951,edad:'46-60',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta recursos',calif_alcaldia:'Regular',medio_info:'Redes sociales',motivacion:'Más apoyo Alcaldía',tecnologia:'No haría diferencia',inst_adecuada:'No, inadecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Nuevo Horizonte',lat:5.030656,lon:-74.005629,edad:'29-45',genero:'Femenino',confianza:'Poca confianza',asistencia:'A 1 o 2',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Regular',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'Rincón del Zipa',lat:5.035354,lon:-73.996562,edad:'18-28',genero:'Masculino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'No sabe / sin resp.',medio_info:'Ninguno',motivacion:'Ver resultados concretos',tecnologia:'Tal vez',inst_adecuada:'Regular',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Portachuelo',lat:5.027007,lon:-74.003458,edad:'60+',genero:'Femenino',confianza:'Mucha confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'No sabe / sin resp.',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'El Progreso',lat:5.026004,lon:-74.001872,edad:'46-60',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta unión',calif_alcaldia:'Regular',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'Tal vez',inst_adecuada:'No, inadecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'La Esperanza',lat:5.031035,lon:-73.999503,edad:'29-45',genero:'Femenino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta recursos',calif_alcaldia:'Regular',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'No le veo utilidad'},
+  {zona:'Casco Urbano',barrio:'San Isidro',lat:5.02785,lon:-73.997396,edad:'18-28',genero:'Femenino',confianza:'Mucha confianza',asistencia:'A 1 o 2',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Regular',medio_info:'WhatsApp',motivacion:'Canales tecnológicos',tecnologia:'Tal vez',inst_adecuada:'Regular',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'La Primavera',lat:5.030284,lon:-74.000639,edad:'29-45',genero:'Femenino',confianza:'Mucha confianza',asistencia:'A ninguna',obstaculo:'Falta capacitación',calif_alcaldia:'Regular',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'No haría diferencia',inst_adecuada:'No, inadecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Los Álamos',lat:5.034294,lon:-73.996643,edad:'18-28',genero:'Femenino',confianza:'Mucha confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Regular',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Villa Melissa',lat:5.033246,lon:-73.997727,edad:'29-45',genero:'Femenino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Mala',medio_info:'Vecinos (boca a boca)',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'Potosí 1',lat:5.028615,lon:-74.00315,edad:'46-60',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Mala',medio_info:'WhatsApp',motivacion:'Canales tecnológicos',tecnologia:'No haría diferencia',inst_adecuada:'No, inadecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'Potosí 2',lat:5.026607,lon:-74.002416,edad:'60+',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Mala',medio_info:'Carteles',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'La Colonia',lat:5.02709,lon:-73.998985,edad:'29-45',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Regular',medio_info:'WhatsApp',motivacion:'Líderes confiables',tecnologia:'No haría diferencia',inst_adecuada:'Regular',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'San Luis',lat:5.029974,lon:-73.9998,edad:'18-28',genero:'Femenino',confianza:'Mucha confianza',asistencia:'A ninguna',obstaculo:'Falta capacitación',calif_alcaldia:'Buena',medio_info:'Vecinos (boca a boca)',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'Regular',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'La Libertad',lat:5.030894,lon:-74.000045,edad:'60+',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Regular',medio_info:'Carteles',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'No le veo utilidad'},
+  {zona:'Casco Urbano',barrio:'Kennedy',lat:5.026605,lon:-74.001227,edad:'46-60',genero:'Femenino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta recursos',calif_alcaldia:'Mala',medio_info:'Redes sociales',motivacion:'Más apoyo Alcaldía',tecnologia:'Tal vez',inst_adecuada:'No, inadecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'Ubaté',lat:5.028353,lon:-74.001555,edad:'46-60',genero:'Masculino',confianza:'Alguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta recursos',calif_alcaldia:'No sabe / sin resp.',medio_info:'Ninguno',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'No le veo utilidad'},
+  {zona:'Casco Urbano',barrio:'El Palmar',lat:5.024268,lon:-73.999962,edad:'29-45',genero:'Femenino',confianza:'Mucha confianza',asistencia:'A ninguna',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Regular',medio_info:'WhatsApp',motivacion:'Conocer mis derechos',tecnologia:'Tal vez',inst_adecuada:'No, inadecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Rural',barrio:'La Granja Rural',lat:5.020589,lon:-73.96938,edad:'46-60',genero:'Masculino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta capacitación',calif_alcaldia:'Buena',medio_info:'Vecinos (boca a boca)',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'Conflictos internos'},
+  {zona:'Casco Urbano',barrio:'Santa Isabel',lat:5.026961,lon:-74.001726,edad:'60+',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Mala',medio_info:'WhatsApp',motivacion:'Más apoyo Alcaldía',tecnologia:'No haría diferencia',inst_adecuada:'No, inadecuadas',razon_np:'Conflictos internos'},
+  {zona:'Casco Urbano',barrio:'Barzalosa',lat:5.028319,lon:-73.997319,edad:'46-60',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta unión',calif_alcaldia:'Excelente',medio_info:'Vecinos (boca a boca)',motivacion:'Conocer mis derechos',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'No le veo utilidad'},
+  {zona:'Casco Urbano',barrio:'La Paz',lat:5.033639,lon:-73.997898,edad:'29-45',genero:'Masculino',confianza:'Poca confianza',asistencia:'A más de 3',obstaculo:'Falta unión',calif_alcaldia:'Buena',medio_info:'Redes sociales',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'Regular',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'Montoya',lat:5.034253,lon:-73.996314,edad:'29-45',genero:'Masculino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'No sabe / sin resp.',medio_info:'Redes sociales',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'No le veo utilidad'},
+  {zona:'Casco Urbano',barrio:'Villa del Rey',lat:5.027703,lon:-74.002262,edad:'46-60',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta capacitación',calif_alcaldia:'No sabe / sin resp.',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'Regular',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'El Cedro',lat:5.031639,lon:-73.998596,edad:'29-45',genero:'Masculino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Excelente',medio_info:'WhatsApp',motivacion:'Conocer mis derechos',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'Comuneros 2',lat:5.02684,lon:-74.001163,edad:'29-45',genero:'Masculino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Buena',medio_info:'Ninguno',motivacion:'Más apoyo Alcaldía',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'La Esmeralda',lat:5.028523,lon:-74.00024,edad:'29-45',genero:'Masculino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'No sabe / sin resp.',medio_info:'Redes sociales',motivacion:'Más apoyo Alcaldía',tecnologia:'Tal vez',inst_adecuada:'No, inadecuadas',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'San Juanito',lat:5.029785,lon:-73.998565,edad:'60+',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta capacitación',calif_alcaldia:'Buena',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'No le veo utilidad'},
+  {zona:'Casco Urbano',barrio:'San Rafael',lat:5.029123,lon:-74.000366,edad:'18-28',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A más de 3',obstaculo:'Falta unión',calif_alcaldia:'Buena',medio_info:'Vecinos (boca a boca)',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'La Florida',lat:5.028331,lon:-74.000991,edad:'46-60',genero:'Masculino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'No sabe / sin resp.',medio_info:'Carteles',motivacion:'Canales tecnológicos',tecnologia:'No haría diferencia',inst_adecuada:'Sí, adecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'Comuneros 1',lat:5.025224,lon:-73.999518,edad:'60+',genero:'Masculino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Buena',medio_info:'Carteles',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'Regular',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Prados del Mirador',lat:5.034959,lon:-73.997599,edad:'60+',genero:'Masculino',confianza:'Mucha confianza',asistencia:'A ninguna',obstaculo:'Falta recursos',calif_alcaldia:'Regular',medio_info:'Redes sociales',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'No me avisan'},
+  {zona:'Propiedad Horizontal',barrio:'Portal de Zipaquirá',lat:5.034759,lon:-73.996714,edad:'29-45',genero:'Femenino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta recursos',calif_alcaldia:'Buena',medio_info:'Vecinos (boca a boca)',motivacion:'Canales tecnológicos',tecnologia:'No haría diferencia',inst_adecuada:'Regular',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Potosí 3',lat:5.027399,lon:-73.999658,edad:'29-45',genero:'Masculino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Buena',medio_info:'Vecinos (boca a boca)',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Antonio Nariño',lat:5.023745,lon:-73.99857,edad:'60+',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta capacitación',calif_alcaldia:'Regular',medio_info:'Vecinos (boca a boca)',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'El Porvenir',lat:5.025728,lon:-74.002165,edad:'29-45',genero:'Femenino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Buena',medio_info:'Redes sociales',motivacion:'Ver resultados concretos',tecnologia:'Tal vez',inst_adecuada:'Sí, adecuadas',razon_np:'Conflictos internos'},
+  {zona:'Rural',barrio:'La Granja Rural',lat:5.020438,lon:-73.970753,edad:'60+',genero:'Masculino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Buena',medio_info:'WhatsApp',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'Regular',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'Los Andes',lat:5.025637,lon:-74.003212,edad:'29-45',genero:'Femenino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Regular',medio_info:'WhatsApp',motivacion:'Ver resultados concretos',tecnologia:'No haría diferencia',inst_adecuada:'Sí, adecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'La Granja',lat:5.021985,lon:-74.003231,edad:'29-45',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta capacitación',calif_alcaldia:'Excelente',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'Regular',razon_np:'No le veo utilidad'},
+  {zona:'Casco Urbano',barrio:'Nuevo Horizonte',lat:5.030706,lon:-74.005109,edad:'60+',genero:'Masculino',confianza:'Alguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Mala',medio_info:'WhatsApp',motivacion:'Conocer mis derechos',tecnologia:'No haría diferencia',inst_adecuada:'Sí, adecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'Rincón del Zipa',lat:5.036288,lon:-73.995743,edad:'46-60',genero:'Masculino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'No sabe / sin resp.',medio_info:'Vecinos (boca a boca)',motivacion:'Más apoyo Alcaldía',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Conflictos internos'},
+  {zona:'Propiedad Horizontal',barrio:'Portal de Zipaquirá',lat:5.033337,lon:-73.99581,edad:'46-60',genero:'Masculino',confianza:'Ninguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta unión',calif_alcaldia:'Buena',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'No haría diferencia',inst_adecuada:'No, inadecuadas',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'El Progreso',lat:5.025977,lon:-74.001159,edad:'46-60',genero:'Femenino',confianza:'Mucha confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'No sabe / sin resp.',medio_info:'Vecinos (boca a boca)',motivacion:'Más apoyo Alcaldía',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'La Esperanza',lat:5.030531,lon:-73.999853,edad:'18-28',genero:'Masculino',confianza:'Ninguna confianza',asistencia:'A más de 3',obstaculo:'Falta unión',calif_alcaldia:'Buena',medio_info:'Vecinos (boca a boca)',motivacion:'Más apoyo Alcaldía',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'San Isidro',lat:5.028339,lon:-73.997286,edad:'18-28',genero:'Masculino',confianza:'Mucha confianza',asistencia:'A 1 o 2',obstaculo:'Falta capacitación',calif_alcaldia:'Regular',medio_info:'Carteles',motivacion:'Ver resultados concretos',tecnologia:'No haría diferencia',inst_adecuada:'No, inadecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'La Primavera',lat:5.029883,lon:-74.000493,edad:'60+',genero:'Masculino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'No sabe / sin resp.',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'Tal vez',inst_adecuada:'No, inadecuadas',razon_np:'No le veo utilidad'},
+  {zona:'Casco Urbano',barrio:'Los Álamos',lat:5.03337,lon:-73.997992,edad:'60+',genero:'Masculino',confianza:'Mucha confianza',asistencia:'A ninguna',obstaculo:'Falta capacitación',calif_alcaldia:'No sabe / sin resp.',medio_info:'WhatsApp',motivacion:'Ver resultados concretos',tecnologia:'No haría diferencia',inst_adecuada:'No, inadecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'Villa Melissa',lat:5.032693,lon:-73.998524,edad:'18-28',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta capacitación',calif_alcaldia:'Buena',medio_info:'Redes sociales',motivacion:'Líderes confiables',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'Potosí 1',lat:5.027832,lon:-74.003088,edad:'29-45',genero:'Femenino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Mala',medio_info:'WhatsApp',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Potosí 2',lat:5.0263,lon:-74.002582,edad:'46-60',genero:'Masculino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Buena',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'No le veo utilidad'},
+  {zona:'Casco Urbano',barrio:'La Colonia',lat:5.027888,lon:-73.998347,edad:'18-28',genero:'Masculino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta capacitación',calif_alcaldia:'Mala',medio_info:'WhatsApp',motivacion:'Líderes confiables',tecnologia:'Sí, facilitaría',inst_adecuada:'Regular',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'San Luis',lat:5.029742,lon:-74.000034,edad:'29-45',genero:'Femenino',confianza:'Poca confianza',asistencia:'A 1 o 2',obstaculo:'Falta unión',calif_alcaldia:'No sabe / sin resp.',medio_info:'WhatsApp',motivacion:'Ver resultados concretos',tecnologia:'Tal vez',inst_adecuada:'No, inadecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'La Libertad',lat:5.030349,lon:-74.000343,edad:'46-60',genero:'Masculino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Buena',medio_info:'Vecinos (boca a boca)',motivacion:'Canales tecnológicos',tecnologia:'No haría diferencia',inst_adecuada:'Sí, adecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Propiedad Horizontal',barrio:'Villa del Rey PH',lat:5.027719,lon:-74.003184,edad:'18-28',genero:'Masculino',confianza:'Mucha confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Regular',medio_info:'WhatsApp',motivacion:'Conocer mis derechos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Ubaté',lat:5.028667,lon:-74.00178,edad:'60+',genero:'Masculino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta capacitación',calif_alcaldia:'Mala',medio_info:'Vecinos (boca a boca)',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'El Palmar',lat:5.024336,lon:-73.998858,edad:'29-45',genero:'Masculino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'No sabe / sin resp.',medio_info:'Redes sociales',motivacion:'Líderes confiables',tecnologia:'Tal vez',inst_adecuada:'Sí, adecuadas',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'Industrial',lat:5.025448,lon:-74.000035,edad:'29-45',genero:'Femenino',confianza:'Poca confianza',asistencia:'A más de 3',obstaculo:'Falta unión',calif_alcaldia:'No sabe / sin resp.',medio_info:'Vecinos (boca a boca)',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'Regular',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Santa Isabel',lat:5.027115,lon:-74.001529,edad:'18-28',genero:'Masculino',confianza:'Alguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta recursos',calif_alcaldia:'Regular',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'Barzalosa',lat:5.028809,lon:-73.998578,edad:'60+',genero:'Femenino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'No sabe / sin resp.',medio_info:'WhatsApp',motivacion:'Ver resultados concretos',tecnologia:'Tal vez',inst_adecuada:'No, inadecuadas',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'La Paz',lat:5.032682,lon:-73.998011,edad:'46-60',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Mala',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'Montoya',lat:5.034301,lon:-73.997105,edad:'29-45',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta unión',calif_alcaldia:'Buena',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'Regular',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'Villa del Rey',lat:5.027874,lon:-74.003025,edad:'46-60',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A más de 3',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'No sabe / sin resp.',medio_info:'Redes sociales',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'Regular',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'El Cedro',lat:5.030823,lon:-73.999397,edad:'60+',genero:'Masculino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta recursos',calif_alcaldia:'Mala',medio_info:'WhatsApp',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Comuneros 2',lat:5.026095,lon:-74.0008,edad:'60+',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Mala',medio_info:'Ninguno',motivacion:'Conocer mis derechos',tecnologia:'No haría diferencia',inst_adecuada:'No, inadecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'La Esmeralda',lat:5.02935,lon:-74.000187,edad:'29-45',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Buena',medio_info:'Vecinos (boca a boca)',motivacion:'Más apoyo Alcaldía',tecnologia:'No haría diferencia',inst_adecuada:'Sí, adecuadas',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'San Juanito',lat:5.029571,lon:-73.999413,edad:'18-28',genero:'Femenino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta capacitación',calif_alcaldia:'Buena',medio_info:'Vecinos (boca a boca)',motivacion:'Canales tecnológicos',tecnologia:'Tal vez',inst_adecuada:'No, inadecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'San Rafael',lat:5.030018,lon:-74.001268,edad:'29-45',genero:'Femenino',confianza:'Poca confianza',asistencia:'A más de 3',obstaculo:'Falta capacitación',calif_alcaldia:'Buena',medio_info:'Vecinos (boca a boca)',motivacion:'Conocer mis derechos',tecnologia:'No haría diferencia',inst_adecuada:'Sí, adecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'La Florida',lat:5.028792,lon:-74.000913,edad:'18-28',genero:'Femenino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Regular',medio_info:'Redes sociales',motivacion:'Más apoyo Alcaldía',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'Comuneros 1',lat:5.025527,lon:-74.000564,edad:'29-45',genero:'Masculino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Regular',medio_info:'Vecinos (boca a boca)',motivacion:'Más apoyo Alcaldía',tecnologia:'No haría diferencia',inst_adecuada:'Sí, adecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Prados del Mirador',lat:5.035105,lon:-73.997025,edad:'29-45',genero:'Masculino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta recursos',calif_alcaldia:'Buena',medio_info:'WhatsApp',motivacion:'Más apoyo Alcaldía',tecnologia:'Tal vez',inst_adecuada:'Sí, adecuadas',razon_np:'No me avisan'},
+  {zona:'Rural',barrio:'Río Frío Occidental',lat:4.950759,lon:-74.000582,edad:'18-28',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta unión',calif_alcaldia:'Buena',medio_info:'Vecinos (boca a boca)',motivacion:'Conocer mis derechos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'Potosí 3',lat:5.027213,lon:-73.999484,edad:'29-45',genero:'Masculino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Buena',medio_info:'Redes sociales',motivacion:'Líderes confiables',tecnologia:'No haría diferencia',inst_adecuada:'Regular',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Antonio Nariño',lat:5.023521,lon:-73.999297,edad:'60+',genero:'Femenino',confianza:'Poca confianza',asistencia:'A más de 3',obstaculo:'Falta capacitación',calif_alcaldia:'No sabe / sin resp.',medio_info:'Ninguno',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'El Porvenir',lat:5.025743,lon:-74.00125,edad:'46-60',genero:'Masculino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Regular',medio_info:'Redes sociales',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'El Carmelo',lat:5.022666,lon:-74.000688,edad:'60+',genero:'Masculino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Mala',medio_info:'WhatsApp',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Los Andes',lat:5.025986,lon:-74.003879,edad:'29-45',genero:'Femenino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Mala',medio_info:'Carteles',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'La Granja',lat:5.021588,lon:-74.003198,edad:'46-60',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta capacitación',calif_alcaldia:'Regular',medio_info:'Redes sociales',motivacion:'Más apoyo Alcaldía',tecnologia:'Sí, facilitaría',inst_adecuada:'Regular',razon_np:'No le veo utilidad'},
+  {zona:'Casco Urbano',barrio:'Nuevo Horizonte',lat:5.030506,lon:-74.005171,edad:'46-60',genero:'Femenino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Mala',medio_info:'Vecinos (boca a boca)',motivacion:'Canales tecnológicos',tecnologia:'No haría diferencia',inst_adecuada:'Sí, adecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'Rincón del Zipa',lat:5.035382,lon:-73.995898,edad:'60+',genero:'Femenino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Regular',medio_info:'Carteles',motivacion:'Líderes confiables',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'Portachuelo',lat:5.027648,lon:-74.003427,edad:'29-45',genero:'Femenino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta recursos',calif_alcaldia:'Regular',medio_info:'WhatsApp',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'Conflictos internos'},
+  {zona:'Casco Urbano',barrio:'El Progreso',lat:5.025791,lon:-74.00142,edad:'18-28',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A más de 3',obstaculo:'Falta recursos',calif_alcaldia:'Regular',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'Conflictos internos'},
+  {zona:'Casco Urbano',barrio:'La Esperanza',lat:5.031925,lon:-73.999361,edad:'46-60',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta capacitación',calif_alcaldia:'Mala',medio_info:'Vecinos (boca a boca)',motivacion:'Líderes confiables',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'No me avisan'},
+  {zona:'Rural',barrio:'El Rudal',lat:5.030333,lon:-73.980098,edad:'46-60',genero:'Femenino',confianza:'Poca confianza',asistencia:'A 1 o 2',obstaculo:'Falta capacitación',calif_alcaldia:'Mala',medio_info:'Vecinos (boca a boca)',motivacion:'Más apoyo Alcaldía',tecnologia:'Sí, facilitaría',inst_adecuada:'Regular',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'La Primavera',lat:5.029166,lon:-73.999891,edad:'18-28',genero:'Femenino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Buena',medio_info:'WhatsApp',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Los Álamos',lat:5.03451,lon:-73.996727,edad:'46-60',genero:'Masculino',confianza:'Poca confianza',asistencia:'A 1 o 2',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Mala',medio_info:'Vecinos (boca a boca)',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Villa Melissa',lat:5.032855,lon:-73.998301,edad:'46-60',genero:'Femenino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Excelente',medio_info:'Vecinos (boca a boca)',motivacion:'Conocer mis derechos',tecnologia:'Tal vez',inst_adecuada:'No, inadecuadas',razon_np:'Conflictos internos'},
+  {zona:'Casco Urbano',barrio:'Potosí 1',lat:5.028413,lon:-74.002913,edad:'46-60',genero:'Femenino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'No sabe / sin resp.',medio_info:'WhatsApp',motivacion:'Líderes confiables',tecnologia:'Sí, facilitaría',inst_adecuada:'Regular',razon_np:'No le veo utilidad'},
+  {zona:'Casco Urbano',barrio:'Potosí 2',lat:5.027054,lon:-74.002156,edad:'46-60',genero:'Masculino',confianza:'Mucha confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'No sabe / sin resp.',medio_info:'WhatsApp',motivacion:'Líderes confiables',tecnologia:'Sí, facilitaría',inst_adecuada:'Regular',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'La Colonia',lat:5.028263,lon:-73.998882,edad:'29-45',genero:'Masculino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta capacitación',calif_alcaldia:'Excelente',medio_info:'Redes sociales',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'San Luis',lat:5.031285,lon:-73.999833,edad:'46-60',genero:'Femenino',confianza:'Mucha confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Regular',medio_info:'WhatsApp',motivacion:'Más apoyo Alcaldía',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'La Libertad',lat:5.030841,lon:-74.000489,edad:'60+',genero:'Masculino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Buena',medio_info:'Ninguno',motivacion:'Canales tecnológicos',tecnologia:'Tal vez',inst_adecuada:'Sí, adecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Propiedad Horizontal',barrio:'La Primavera PH',lat:5.030173,lon:-73.999893,edad:'18-28',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta recursos',calif_alcaldia:'Regular',medio_info:'WhatsApp',motivacion:'Ver resultados concretos',tecnologia:'Tal vez',inst_adecuada:'No, inadecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Ubaté',lat:5.02907,lon:-74.001135,edad:'29-45',genero:'Femenino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Regular',medio_info:'Vecinos (boca a boca)',motivacion:'Canales tecnológicos',tecnologia:'Tal vez',inst_adecuada:'Regular',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'El Palmar',lat:5.024775,lon:-73.998867,edad:'29-45',genero:'Masculino',confianza:'Alguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta capacitación',calif_alcaldia:'Regular',medio_info:'Carteles',motivacion:'Más apoyo Alcaldía',tecnologia:'Sí, facilitaría',inst_adecuada:'Regular',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'Industrial',lat:5.024859,lon:-74.000579,edad:'60+',genero:'Femenino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Mala',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'Regular',razon_np:'No le veo utilidad'},
+  {zona:'Casco Urbano',barrio:'Santa Isabel',lat:5.026336,lon:-74.00057,edad:'18-28',genero:'Otro',confianza:'Mucha confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'No sabe / sin resp.',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Barzalosa',lat:5.029252,lon:-73.998232,edad:'46-60',genero:'Femenino',confianza:'Mucha confianza',asistencia:'A ninguna',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Regular',medio_info:'Redes sociales',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'La Paz',lat:5.033235,lon:-73.998729,edad:'46-60',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta recursos',calif_alcaldia:'Regular',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'Montoya',lat:5.035774,lon:-73.996716,edad:'60+',genero:'Femenino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Buena',medio_info:'Carteles',motivacion:'Más apoyo Alcaldía',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Villa del Rey',lat:5.027839,lon:-74.002596,edad:'29-45',genero:'Femenino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'No sabe / sin resp.',medio_info:'Vecinos (boca a boca)',motivacion:'Canales tecnológicos',tecnologia:'No haría diferencia',inst_adecuada:'Sí, adecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'El Cedro',lat:5.032245,lon:-73.999111,edad:'46-60',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'No sabe / sin resp.',medio_info:'WhatsApp',motivacion:'Canales tecnológicos',tecnologia:'No haría diferencia',inst_adecuada:'Regular',razon_np:'Conflictos internos'},
+  {zona:'Casco Urbano',barrio:'Comuneros 2',lat:5.025717,lon:-74.001386,edad:'29-45',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Buena',medio_info:'WhatsApp',motivacion:'Conocer mis derechos',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'No le veo utilidad'},
+  {zona:'Casco Urbano',barrio:'La Esmeralda',lat:5.029217,lon:-73.99967,edad:'29-45',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Regular',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'No haría diferencia',inst_adecuada:'Sí, adecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'San Juanito',lat:5.030329,lon:-73.99898,edad:'18-28',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'No sabe / sin resp.',medio_info:'Vecinos (boca a boca)',motivacion:'Conocer mis derechos',tecnologia:'No haría diferencia',inst_adecuada:'Regular',razon_np:'No le veo utilidad'},
+  {zona:'Casco Urbano',barrio:'San Rafael',lat:5.029213,lon:-74.001174,edad:'29-45',genero:'Femenino',confianza:'Mucha confianza',asistencia:'A 1 o 2',obstaculo:'Falta unión',calif_alcaldia:'Buena',medio_info:'Redes sociales',motivacion:'Ver resultados concretos',tecnologia:'Tal vez',inst_adecuada:'Sí, adecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'La Florida',lat:5.029036,lon:-74.001258,edad:'46-60',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta capacitación',calif_alcaldia:'Buena',medio_info:'Vecinos (boca a boca)',motivacion:'Más apoyo Alcaldía',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'Comuneros 1',lat:5.025801,lon:-74.000548,edad:'60+',genero:'Masculino',confianza:'Ninguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Excelente',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'Tal vez',inst_adecuada:'No, inadecuadas',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'Prados del Mirador',lat:5.033839,lon:-73.998233,edad:'29-45',genero:'Masculino',confianza:'Poca confianza',asistencia:'A más de 3',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Regular',medio_info:'Redes sociales',motivacion:'Más apoyo Alcaldía',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'San Carlos',lat:5.031966,lon:-73.996761,edad:'60+',genero:'Masculino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Regular',medio_info:'WhatsApp',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'Potosí 3',lat:5.026886,lon:-73.999495,edad:'46-60',genero:'Femenino',confianza:'Poca confianza',asistencia:'A 1 o 2',obstaculo:'Falta capacitación',calif_alcaldia:'No sabe / sin resp.',medio_info:'Vecinos (boca a boca)',motivacion:'Más apoyo Alcaldía',tecnologia:'Tal vez',inst_adecuada:'Sí, adecuadas',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'Antonio Nariño',lat:5.023427,lon:-73.999301,edad:'60+',genero:'Femenino',confianza:'Alguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta capacitación',calif_alcaldia:'No sabe / sin resp.',medio_info:'Carteles',motivacion:'Ver resultados concretos',tecnologia:'No haría diferencia',inst_adecuada:'No, inadecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'El Porvenir',lat:5.024929,lon:-74.002469,edad:'60+',genero:'Femenino',confianza:'Mucha confianza',asistencia:'A ninguna',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Buena',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'No haría diferencia',inst_adecuada:'Regular',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'El Carmelo',lat:5.022973,lon:-74.001038,edad:'18-28',genero:'Masculino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta capacitación',calif_alcaldia:'Regular',medio_info:'Redes sociales',motivacion:'Líderes confiables',tecnologia:'Tal vez',inst_adecuada:'Sí, adecuadas',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'Los Andes',lat:5.025901,lon:-74.003685,edad:'60+',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Mala',medio_info:'Ninguno',motivacion:'Más apoyo Alcaldía',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'La Granja',lat:5.02171,lon:-74.00332,edad:'18-28',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A más de 3',obstaculo:'Falta unión',calif_alcaldia:'No sabe / sin resp.',medio_info:'Carteles',motivacion:'Ver resultados concretos',tecnologia:'No haría diferencia',inst_adecuada:'Sí, adecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Nuevo Horizonte',lat:5.030496,lon:-74.005616,edad:'18-28',genero:'Masculino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Regular',medio_info:'Ninguno',motivacion:'Líderes confiables',tecnologia:'No haría diferencia',inst_adecuada:'No, inadecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Rincón del Zipa',lat:5.036559,lon:-73.995763,edad:'60+',genero:'Femenino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Mala',medio_info:'Redes sociales',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'Portachuelo',lat:5.027783,lon:-74.004037,edad:'46-60',genero:'Femenino',confianza:'Mucha confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'No sabe / sin resp.',medio_info:'WhatsApp',motivacion:'Más apoyo Alcaldía',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'El Progreso',lat:5.026274,lon:-74.00191,edad:'18-28',genero:'Femenino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Regular',medio_info:'WhatsApp',motivacion:'Más apoyo Alcaldía',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'La Esperanza',lat:5.030679,lon:-73.999844,edad:'60+',genero:'Masculino',confianza:'Ninguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta unión',calif_alcaldia:'Mala',medio_info:'WhatsApp',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'San Isidro',lat:5.028096,lon:-73.996766,edad:'46-60',genero:'Femenino',confianza:'Poca confianza',asistencia:'A más de 3',obstaculo:'Falta unión',calif_alcaldia:'Excelente',medio_info:'WhatsApp',motivacion:'Conocer mis derechos',tecnologia:'Sí, facilitaría',inst_adecuada:'Regular',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'La Primavera',lat:5.029071,lon:-74.000352,edad:'46-60',genero:'Masculino',confianza:'Ninguna confianza',asistencia:'A más de 3',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Mala',medio_info:'Vecinos (boca a boca)',motivacion:'Canales tecnológicos',tecnologia:'No haría diferencia',inst_adecuada:'Sí, adecuadas',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'Los Álamos',lat:5.033495,lon:-73.996975,edad:'18-28',genero:'Masculino',confianza:'Poca confianza',asistencia:'A 1 o 2',obstaculo:'Falta unión',calif_alcaldia:'No sabe / sin resp.',medio_info:'Vecinos (boca a boca)',motivacion:'Conocer mis derechos',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Villa Melissa',lat:5.032891,lon:-73.999053,edad:'60+',genero:'Masculino',confianza:'Ninguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta unión',calif_alcaldia:'Mala',medio_info:'WhatsApp',motivacion:'Más apoyo Alcaldía',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Potosí 1',lat:5.028383,lon:-74.002984,edad:'46-60',genero:'Masculino',confianza:'Mucha confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'No sabe / sin resp.',medio_info:'Vecinos (boca a boca)',motivacion:'Líderes confiables',tecnologia:'Sí, facilitaría',inst_adecuada:'Regular',razon_np:'No le veo utilidad'},
+  {zona:'Casco Urbano',barrio:'Potosí 2',lat:5.026948,lon:-74.002678,edad:'60+',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Mala',medio_info:'WhatsApp',motivacion:'Canales tecnológicos',tecnologia:'No haría diferencia',inst_adecuada:'No, inadecuadas',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'La Colonia',lat:5.028128,lon:-73.998671,edad:'29-45',genero:'Femenino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'No sabe / sin resp.',medio_info:'Vecinos (boca a boca)',motivacion:'Líderes confiables',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'Conflictos internos'},
+  {zona:'Casco Urbano',barrio:'San Luis',lat:5.030904,lon:-73.999306,edad:'60+',genero:'Femenino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'No sabe / sin resp.',medio_info:'Carteles',motivacion:'Más apoyo Alcaldía',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'No le veo utilidad'},
+  {zona:'Casco Urbano',barrio:'La Libertad',lat:5.0303,lon:-74.001137,edad:'18-28',genero:'Masculino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Regular',medio_info:'Vecinos (boca a boca)',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'Kennedy',lat:5.027095,lon:-74.002301,edad:'46-60',genero:'Masculino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Buena',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'No haría diferencia',inst_adecuada:'Sí, adecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Ubaté',lat:5.028722,lon:-74.001668,edad:'46-60',genero:'Masculino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta capacitación',calif_alcaldia:'No sabe / sin resp.',medio_info:'Redes sociales',motivacion:'Más apoyo Alcaldía',tecnologia:'No haría diferencia',inst_adecuada:'Regular',razon_np:'Falta de tiempo'},
+  {zona:'Rural',barrio:'El Empalizado',lat:4.84962,lon:-73.98942,edad:'60+',genero:'Femenino',confianza:'Mucha confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Mala',medio_info:'WhatsApp',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'Industrial',lat:5.024844,lon:-74.000577,edad:'29-45',genero:'Masculino',confianza:'Ninguna confianza',asistencia:'A más de 3',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Mala',medio_info:'WhatsApp',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'Regular',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Santa Isabel',lat:5.027155,lon:-74.000822,edad:'29-45',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta recursos',calif_alcaldia:'No sabe / sin resp.',medio_info:'Vecinos (boca a boca)',motivacion:'Canales tecnológicos',tecnologia:'No haría diferencia',inst_adecuada:'Regular',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Barzalosa',lat:5.029139,lon:-73.998243,edad:'18-28',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A más de 3',obstaculo:'Falta recursos',calif_alcaldia:'Mala',medio_info:'Redes sociales',motivacion:'Más apoyo Alcaldía',tecnologia:'Sí, facilitaría',inst_adecuada:'Regular',razon_np:'No le veo utilidad'},
+  {zona:'Casco Urbano',barrio:'La Paz',lat:5.033553,lon:-73.997812,edad:'29-45',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta recursos',calif_alcaldia:'No sabe / sin resp.',medio_info:'WhatsApp',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'Montoya',lat:5.035502,lon:-73.99667,edad:'60+',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta capacitación',calif_alcaldia:'Regular',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'No haría diferencia',inst_adecuada:'Regular',razon_np:'Conflictos internos'},
+  {zona:'Rural',barrio:'Ventalarga',lat:5.034676,lon:-73.989817,edad:'29-45',genero:'Masculino',confianza:'Alguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'No sabe / sin resp.',medio_info:'Vecinos (boca a boca)',motivacion:'Conocer mis derechos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'No le veo utilidad'},
+  {zona:'Casco Urbano',barrio:'El Cedro',lat:5.030836,lon:-73.999586,edad:'18-28',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Excelente',medio_info:'Vecinos (boca a boca)',motivacion:'Conocer mis derechos',tecnologia:'Tal vez',inst_adecuada:'Regular',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Comuneros 2',lat:5.025889,lon:-74.001311,edad:'18-28',genero:'Masculino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Buena',medio_info:'Ninguno',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'Regular',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'La Esmeralda',lat:5.028693,lon:-73.999391,edad:'46-60',genero:'Masculino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'No sabe / sin resp.',medio_info:'Redes sociales',motivacion:'Canales tecnológicos',tecnologia:'Tal vez',inst_adecuada:'No, inadecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'San Juanito',lat:5.030217,lon:-73.999231,edad:'46-60',genero:'Femenino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta recursos',calif_alcaldia:'Buena',medio_info:'WhatsApp',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'San Rafael',lat:5.028721,lon:-74.001186,edad:'60+',genero:'Masculino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta recursos',calif_alcaldia:'No sabe / sin resp.',medio_info:'Carteles',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'La Florida',lat:5.028097,lon:-74.001183,edad:'18-28',genero:'Masculino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'No sabe / sin resp.',medio_info:'Vecinos (boca a boca)',motivacion:'Conocer mis derechos',tecnologia:'No haría diferencia',inst_adecuada:'Regular',razon_np:'No le veo utilidad'},
+  {zona:'Casco Urbano',barrio:'Comuneros 1',lat:5.026109,lon:-74.000068,edad:'60+',genero:'Masculino',confianza:'Alguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta unión',calif_alcaldia:'Buena',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Prados del Mirador',lat:5.0354,lon:-73.997512,edad:'46-60',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta recursos',calif_alcaldia:'No sabe / sin resp.',medio_info:'Vecinos (boca a boca)',motivacion:'Más apoyo Alcaldía',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Rural',barrio:'Ventalarga',lat:5.034983,lon:-73.990576,edad:'46-60',genero:'Femenino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'No sabe / sin resp.',medio_info:'Vecinos (boca a boca)',motivacion:'Conocer mis derechos',tecnologia:'No haría diferencia',inst_adecuada:'No, inadecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'Potosí 3',lat:5.027203,lon:-74.000278,edad:'46-60',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Regular',medio_info:'Carteles',motivacion:'Ver resultados concretos',tecnologia:'Tal vez',inst_adecuada:'Sí, adecuadas',razon_np:'Conflictos internos'},
+  {zona:'Casco Urbano',barrio:'Antonio Nariño',lat:5.023286,lon:-73.999226,edad:'29-45',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'No sabe / sin resp.',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'El Porvenir',lat:5.024215,lon:-74.002582,edad:'46-60',genero:'Femenino',confianza:'Poca confianza',asistencia:'A más de 3',obstaculo:'Falta capacitación',calif_alcaldia:'No sabe / sin resp.',medio_info:'Carteles',motivacion:'Líderes confiables',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'El Carmelo',lat:5.023504,lon:-74.000258,edad:'46-60',genero:'Masculino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta recursos',calif_alcaldia:'Buena',medio_info:'Vecinos (boca a boca)',motivacion:'Canales tecnológicos',tecnologia:'Tal vez',inst_adecuada:'Regular',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Los Andes',lat:5.026009,lon:-74.004008,edad:'60+',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta recursos',calif_alcaldia:'Buena',medio_info:'Vecinos (boca a boca)',motivacion:'Más apoyo Alcaldía',tecnologia:'No haría diferencia',inst_adecuada:'Sí, adecuadas',razon_np:'No le veo utilidad'},
+  {zona:'Propiedad Horizontal',barrio:'Villa del Rey PH',lat:5.028296,lon:-74.003135,edad:'18-28',genero:'Femenino',confianza:'Mucha confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Buena',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'Nuevo Horizonte',lat:5.030544,lon:-74.005018,edad:'29-45',genero:'Femenino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'No sabe / sin resp.',medio_info:'Vecinos (boca a boca)',motivacion:'Más apoyo Alcaldía',tecnologia:'Tal vez',inst_adecuada:'Sí, adecuadas',razon_np:'Conflictos internos'},
+  {zona:'Casco Urbano',barrio:'Rincón del Zipa',lat:5.035332,lon:-73.996751,edad:'29-45',genero:'Masculino',confianza:'Ninguna confianza',asistencia:'A más de 3',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Buena',medio_info:'Vecinos (boca a boca)',motivacion:'Líderes confiables',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Portachuelo',lat:5.027918,lon:-74.003833,edad:'60+',genero:'Femenino',confianza:'Mucha confianza',asistencia:'A ninguna',obstaculo:'Falta recursos',calif_alcaldia:'No sabe / sin resp.',medio_info:'WhatsApp',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'El Progreso',lat:5.02514,lon:-74.00144,edad:'60+',genero:'Femenino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Regular',medio_info:'Vecinos (boca a boca)',motivacion:'Conocer mis derechos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'La Esperanza',lat:5.030669,lon:-73.999368,edad:'29-45',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'No sabe / sin resp.',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'No haría diferencia',inst_adecuada:'Regular',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'San Isidro',lat:5.028388,lon:-73.997075,edad:'46-60',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta recursos',calif_alcaldia:'No sabe / sin resp.',medio_info:'Vecinos (boca a boca)',motivacion:'Más apoyo Alcaldía',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'La Primavera',lat:5.02958,lon:-74.000819,edad:'46-60',genero:'Femenino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Regular',medio_info:'Vecinos (boca a boca)',motivacion:'Conocer mis derechos',tecnologia:'No haría diferencia',inst_adecuada:'No, inadecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Los Álamos',lat:5.033383,lon:-73.99676,edad:'46-60',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta recursos',calif_alcaldia:'Regular',medio_info:'Redes sociales',motivacion:'Más apoyo Alcaldía',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'Villa Melissa',lat:5.033517,lon:-73.998513,edad:'60+',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta recursos',calif_alcaldia:'No sabe / sin resp.',medio_info:'WhatsApp',motivacion:'Conocer mis derechos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'Potosí 1',lat:5.028716,lon:-74.003233,edad:'18-28',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Regular',medio_info:'WhatsApp',motivacion:'Más apoyo Alcaldía',tecnologia:'Sí, facilitaría',inst_adecuada:'Regular',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Potosí 2',lat:5.02715,lon:-74.002426,edad:'46-60',genero:'Femenino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Buena',medio_info:'WhatsApp',motivacion:'Ver resultados concretos',tecnologia:'No haría diferencia',inst_adecuada:'Sí, adecuadas',razon_np:'No me avisan'},
+  {zona:'Propiedad Horizontal',barrio:'La Colonia PH',lat:5.028584,lon:-73.998836,edad:'29-45',genero:'Masculino',confianza:'Ninguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta capacitación',calif_alcaldia:'Buena',medio_info:'Ninguno',motivacion:'Líderes confiables',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'No le veo utilidad'},
+  {zona:'Casco Urbano',barrio:'San Luis',lat:5.031028,lon:-73.999398,edad:'46-60',genero:'Masculino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Excelente',medio_info:'Redes sociales',motivacion:'Líderes confiables',tecnologia:'Tal vez',inst_adecuada:'Sí, adecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'La Libertad',lat:5.030676,lon:-73.999701,edad:'60+',genero:'Femenino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Buena',medio_info:'Vecinos (boca a boca)',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'Regular',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Kennedy',lat:5.02642,lon:-74.002042,edad:'29-45',genero:'Femenino',confianza:'Ninguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta unión',calif_alcaldia:'No sabe / sin resp.',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'No le veo utilidad'},
+  {zona:'Casco Urbano',barrio:'Ubaté',lat:5.029507,lon:-74.001697,edad:'29-45',genero:'Femenino',confianza:'Mucha confianza',asistencia:'A ninguna',obstaculo:'Falta recursos',calif_alcaldia:'Regular',medio_info:'WhatsApp',motivacion:'Ver resultados concretos',tecnologia:'Tal vez',inst_adecuada:'Regular',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'El Palmar',lat:5.02579,lon:-73.999059,edad:'46-60',genero:'Masculino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Excelente',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'Regular',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Industrial',lat:5.024379,lon:-74.000303,edad:'18-28',genero:'Otro',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'No sabe / sin resp.',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'Tal vez',inst_adecuada:'Sí, adecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'Santa Isabel',lat:5.027141,lon:-74.001239,edad:'29-45',genero:'Masculino',confianza:'Alguna confianza',asistencia:'A 1 o 2',obstaculo:'Falta recursos',calif_alcaldia:'Excelente',medio_info:'WhatsApp',motivacion:'Ver resultados concretos',tecnologia:'No haría diferencia',inst_adecuada:'Sí, adecuadas',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'Barzalosa',lat:5.029337,lon:-73.997788,edad:'60+',genero:'Masculino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Regular',medio_info:'Redes sociales',motivacion:'Más apoyo Alcaldía',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'Falta de tiempo'},
+  {zona:'Casco Urbano',barrio:'La Paz',lat:5.032466,lon:-73.998577,edad:'18-28',genero:'Masculino',confianza:'Ninguna confianza',asistencia:'A ninguna',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'No sabe / sin resp.',medio_info:'Vecinos (boca a boca)',motivacion:'Conocer mis derechos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Desconfianza en líderes'},
+  {zona:'Casco Urbano',barrio:'Montoya',lat:5.034531,lon:-73.997469,edad:'18-28',genero:'Femenino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Regular',medio_info:'Vecinos (boca a boca)',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'No me avisan'},
+  {zona:'Casco Urbano',barrio:'Villa del Rey',lat:5.027295,lon:-74.003239,edad:'29-45',genero:'Masculino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Mala',medio_info:'WhatsApp',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'Desconfianza en líderes'}
+];
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// FILTER STATE & HELPERS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function filterData() {
+  const zonas = new Set();
+  if(document.getElementById('f-urbana').checked) zonas.add('Casco Urbano');
+  if(document.getElementById('f-rural').checked)  zonas.add('Rural');
+  if(document.getElementById('f-ph').checked)     zonas.add('Propiedad Horizontal');
+  const edades = new Set();
+  if(document.getElementById('f-edad1').checked) edades.add('18-28');
+  if(document.getElementById('f-edad2').checked) edades.add('29-45');
+  if(document.getElementById('f-edad3').checked) edades.add('46-60');
+  if(document.getElementById('f-edad4').checked) edades.add('60+');
+  return RAW_DATA.filter(r => zonas.has(r.zona) && edades.has(r.edad));
+}
+
+// Count occurrences of a field value in the filtered array
+function countBy(arr, field) {
+  const counts = {};
+  arr.forEach(r => { const v = r[field]; counts[v] = (counts[v]||0)+1; });
+  return counts;
+}
+
+// Order a count object by a given key list, returning [labels, values]
+function ordered(counts, keys) {
+  return [keys, keys.map(k => counts[k]||0)];
+}
+
+function pct(n, total) { return total ? Math.round(n/total*100) : 0; }
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// STATIC CHARTS (Fortalecimiento JAC + Inst. Capacidades)
+// Rendered once at startup, never change with filters
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function renderStatic() {
+  // RESUMEN — Qué le falta (Fortalecimiento n=57)
+  Plotly.newPlot('ch-falta-res',
+    hbar(['Apoyo Alcaldía','Recursos económicos','Capacitación','Comunicación','Espacio físico'],
+      [42,35,28,22,18], PALETTE.blue5),
+    layout({height:240,margin:{l:8,r:50,t:8,b:30}}), CFG);
+
+  // DEMOGRÁFICO — Líderes edad (Fortalecimiento)
+  Plotly.newPlot('ch-edad-f',
+    vbar(['Joven\n14-28','Adulto\n29-50','Adulto Mayor\n51-70','Persona Mayor\n70+'],[1,29,23,4],
+      [T.red,T.blue,T.teal,T.orange]),
+    layout({height:240,margin:{l:8,r:8,t:8,b:50}}), CFG);
+
+  Plotly.newPlot('ch-educ-f',
+    hbar(['Primaria','Bachillerato','Técnico/Tecnólogo','Univ./Posgrado'],[6,15,17,19],
+      PALETTE.blue5.slice(1,5)),
+    layout({height:220,margin:{l:8,r:50,t:8,b:30}}), CFG);
+
+  const zf = donut(['Casco Urbano','Rural','PH'],[43,13,1],[T.blue,T.green,T.teal]);
+  Plotly.newPlot('ch-zona-f', zf.data, zf.layout, CFG);
+
+  // PARTICIPACIÓN — Rol, tiempo, plan (Fortalecimiento)
+  Plotly.newPlot('ch-rol',
+    hbar(['Dignatario','Comités de Trabajo','Habitante','Afiliado'],[40,12,3,2],
+      [T.blue,T.teal,T.green,T.yellow]),
+    layout({height:200,margin:{l:8,r:50,t:8,b:30}}), CFG);
+
+  Plotly.newPlot('ch-tiempo',
+    vbar(['< 1 año','1-5 años','5-15 años','15+ años'],[4,22,20,11],
+      [T.red,T.orange,T.blue,T.teal]),
+    layout({height:240,margin:{l:8,r:8,t:8,b:40}}), CFG);
+
+  Plotly.newPlot('ch-plan',
+    hbar(['Siempre (con propuestas)','A veces (solo escuchar)','Invitados, no asisten','Nunca invitados'],
+      [16,17,15,9],[T.green,T.yellow,T.orange,T.red]),
+    layout({height:220,margin:{l:8,r:50,t:8,b:30}}), CFG);
+
+  // INSTITUCIONAL (n=10 funcionarios + Fortalecimiento n=57 — all static)
+  const dims = [
+    'Legitimidad ciudadana','Ambiente innovación','Decisiones en datos',
+    'Mecanismos evaluación','Recursos presupuestales','Herramientas digitales',
+    'Infraestructura física','Flexibilidad estructural','Comunicación interna',
+    'Coord. interinstitucional','Coordinación interna','Proc. documentados',
+    'Banco de conocimiento','Capacitación continua','Personal especializado'
+  ];
+  const scores = [2.4,2.6,3.0,2.6,1.9,2.4,2.9,2.5,2.8,2.7,2.8,3.5,2.3,3.0,2.5];
+  const capColors = scores.map(s => s>=3.5?T.green:s>=3.0?T.teal:s>=2.5?T.yellow:s>=2.0?T.orange:T.red);
+  Plotly.newPlot('ch-cap-bar',
+    [{type:'bar',orientation:'h',y:dims,x:scores,marker:{color:capColors,opacity:0.9},
+      text:scores.map(s=>s.toFixed(1)),textposition:'outside',
+      textfont:{color:T.text2,size:11},
+      hovertemplate:'%{y}: <b>%{x:.1f}/5</b><extra></extra>',cliponaxis:false}],
+    {...layout({height:480,margin:{l:8,r:60,t:10,b:40},xaxis:{range:[0,5.5],title:{text:'Puntaje (1–5)',font:{color:T.text}}}}),
+      shapes:[{type:'line',x0:3,x1:3,y0:-0.5,y1:14.5,line:{color:'rgba(59,130,246,0.6)',dash:'dot',width:2}}],
+      annotations:[{x:3.1,y:14.5,text:'Umbral 3.0',showarrow:false,font:{color:'#60a5fa',size:10}}]
+    }, CFG);
+
+  Plotly.newPlot('ch-cap-alc',
+    hbar(['A veces (esporádicas)','Casi nunca','Nunca','Sí, frecuentemente'],
+      [28,11,9,9],[T.yellow,T.orange,T.red,T.green]),
+    layout({height:220,margin:{l:8,r:50,t:8,b:30}}), CFG);
+
+  Plotly.newPlot('ch-oferta',
+    hbar(['Algunos programas (sin acceso)','Sí, toda la oferta','Solo rumores','No tenemos info'],
+      [24,13,12,8],[T.yellow,T.green,T.orange,T.red]),
+    layout({height:220,margin:{l:8,r:50,t:8,b:30}}), CFG);
+
+  Plotly.newPlot('ch-legal',
+    hbar(['Óptimo (Auto+libros)','Regular (falta actualizar)','Desconocido','Crítico (vencido)'],
+      [35,19,2,1],[T.green,T.yellow,T.orange,T.red]),
+    layout({height:200,margin:{l:8,r:50,t:8,b:30}}), CFG);
+
+  Plotly.newPlot('ch-rut',
+    hbar(['Sí (RUT + Cuenta)','Solo RUT','Sin nada','Sin conocimiento','Cuenta embargada'],
+      [36,10,5,4,2],[T.green,T.yellow,T.orange,T.red+'99',T.red+'66']),
+    layout({height:240,margin:{l:8,r:50,t:8,b:30}}), CFG);
+
+  // INFRAESTRUCTURA — espacios, tec, recursos, presup (Fortalecimiento — static)
+  const edsp = donut(
+    ['Sin sitio (calle/parque)','Salón propio (buen estado)','Salón propio (reparar)','Espacio prestado'],
+    [27,15,10,5],[T.red,T.green,T.yellow,T.orange]);
+  Plotly.newPlot('ch-espacio', edsp.data, edsp.layout, CFG);
+
+  const etec = donut(
+    ['Sin ninguna herramienta','Equipos completos','Equipos dañados','Computador sin internet'],
+    [47,4,3,3],[T.red,T.green,T.orange,T.yellow]);
+  Plotly.newPlot('ch-tec-f', etec.data, etec.layout, CFG);
+
+  const erec = donut(
+    ['Autogestión (bazares/rifas)','Bolsillo propio','Aportes comunitarios','Contratos/convenios'],
+    [35,12,8,2],[T.orange,T.red,T.yellow,T.green]);
+  Plotly.newPlot('ch-recursos', erec.data, erec.layout, CFG);
+
+  Plotly.newPlot('ch-presup',
+    hbar(['Siempre en déficit','Caja en ceros','Solo papelería','Alcanza para obras'],
+      [19,17,14,7],[T.red,T.red+'99',T.orange,T.green]),
+    layout({height:200,margin:{l:8,r:50,t:8,b:30}}), CFG);
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// DYNAMIC CHARTS (KoBo-derived, respond to filters)
+// Called with filtered data array fd
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function renderDynamic(fd) {
+  const n = fd.length;
+
+  // ── Update badge ──────────────────────────
+  document.getElementById('filter-count-badge').textContent = '● ' + n + ' encuestas';
+  document.getElementById('kpi-map-pts').textContent = n;
+
+  // ── RESUMEN KPIs ──────────────────────────
+  const cCount = countBy(fd, 'confianza');
+  const bajaPct = pct((cCount['Ninguna confianza']||0)+(cCount['Poca confianza']||0), n);
+  document.getElementById('kpi-baja-confianza').textContent = bajaPct + '%';
+  document.getElementById('tag-trust-res').textContent = '🔴 ' + bajaPct + '% baja confianza';
+
+  const aCount = countBy(fd, 'asistencia');
+  const nAsistePct = pct(aCount['A ninguna']||0, n);
+  document.getElementById('kpi-no-asiste').textContent = nAsistePct + '%';
+  document.getElementById('tag-asist-res').textContent = '🚨 ' + nAsistePct + '% ninguna';
+
+  // Participación KPIs
+  document.getElementById('kpi-p-ninguna').textContent = pct(aCount['A ninguna']||0, n) + '%';
+  document.getElementById('kpi-p-12').textContent     = pct(aCount['A 1 o 2']||0, n) + '%';
+  document.getElementById('kpi-p-3mas').textContent   = pct(aCount['A más de 3']||0, n) + '%';
+
+  // Percepción gauges
+  const gN = pct(cCount['Ninguna confianza']||0, n);
+  const gP = pct(cCount['Poca confianza']||0, n);
+  const gA = pct(cCount['Alguna confianza']||0, n);
+  const gM = pct(cCount['Mucha confianza']||0, n);
+  document.getElementById('g-ninguna').textContent = gN + '%';
+  document.getElementById('g-poca').textContent    = gP + '%';
+  document.getElementById('g-alguna').textContent  = gA + '%';
+  document.getElementById('g-mucha').textContent   = gM + '%';
+
+  // Map KPI
+  document.getElementById('kpi-map-red').textContent = pct(cCount['Ninguna confianza']||0, n) + '%';
+
+  // ── RESUMEN charts ────────────────────────
+  const cKeys = ['Ninguna confianza','Poca confianza','Alguna confianza','Mucha confianza'];
+  const [cLab, cVals] = ordered(cCount, cKeys);
+  Plotly.react('ch-trust-res',
+    hbar(cLab, cVals, [T.red,T.orange,T.yellow,T.green]),
+    layout({height:240,margin:{l:8,r:50,t:8,b:30}}), CFG);
+
+  const obCount = countBy(fd, 'obstaculo');
+  const obKeys = ['Falta unión','Falta apoyo Alcaldía','Falta recursos','Falta capacitación'];
+  const [obL, obV] = ordered(obCount, obKeys);
+  Plotly.react('ch-obs-res', hbar(obL, obV, PALETTE.blue5),
+    layout({height:220,margin:{l:8,r:50,t:8,b:30}}), CFG);
+
+  const [aLab, aVals] = ordered(aCount, ['A ninguna','A 1 o 2','A más de 3']);
+  const ad = donut(aLab, aVals, [T.red,T.orange,T.green]);
+  Plotly.react('ch-asist-res', ad.data, ad.layout, CFG);
+
+  // ── DEMOGRÁFICO ───────────────────────────
+  const eCount = countBy(fd, 'edad');
+  const [eLab, eVals] = ordered(eCount, ['18-28','29-45','46-60','60+']);
+  Plotly.react('ch-edad-k',
+    vbar(eLab, eVals, [T.teal,T.blue,T.purple,T.orange]),
+    layout({height:240,margin:{l:8,r:8,t:8,b:40},yaxis:{title:{text:'Personas',font:{color:T.text}}}}), CFG);
+
+  const gCount = countBy(fd, 'genero');
+  const gLabels = ['Femenino','Masculino','Otro'];
+  const gVals = gLabels.map(k => gCount[k]||0);
+  const gd = donut(gLabels, gVals, ['#a855f7','#3b82f6','#14b8a6']);
+  Plotly.react('ch-genero-k', gd.data, gd.layout, CFG);
+
+  const zCount = countBy(fd, 'zona');
+  const zLab = ['Casco Urbano','Propiedad Horizontal','Rural'];
+  const zVals = zLab.map(k => zCount[k]||0);
+  const zd = donut(zLab, zVals, [T.blue,T.teal,T.green]);
+  Plotly.react('ch-zona-k', zd.data, zd.layout, CFG);
+
+  // ── PARTICIPACIÓN ─────────────────────────
+  const [asistL, asistV] = ordered(aCount, ['A ninguna','A 1 o 2','A más de 3']);
+  const ad2 = donut(asistL, asistV, [T.red,T.orange,T.green]);
+  ad2.data[0].textinfo = 'label+percent';
+  Plotly.react('ch-asist-det', ad2.data, layout({height:270,margin:{l:10,r:10,t:8,b:10}}), CFG);
+
+  const rnCount = countBy(fd, 'razon_np');
+  const rnKeys = ['Desconfianza en líderes','Falta de tiempo','No me avisan','No le veo utilidad','Conflictos internos'];
+  const [rnL, rnV] = ordered(rnCount, rnKeys);
+  Plotly.react('ch-razones', hbar(rnL, rnV, [T.red,T.orange,T.yellow,T.blue,T.purple]),
+    layout({height:240,margin:{l:8,r:50,t:8,b:30}}), CFG);
+
+  const mvCount = countBy(fd, 'motivacion');
+  const mvKeys = ['Ver resultados concretos','Canales tecnológicos','Más apoyo Alcaldía','Conocer mis derechos','Líderes confiables'];
+  const [mvL, mvV] = ordered(mvCount, mvKeys);
+  Plotly.react('ch-motiv', hbar(mvL, mvV, PALETTE.blue5),
+    layout({height:250,margin:{l:8,r:50,t:8,b:30}}), CFG);
+
+  // ── PERCEPCIÓN ────────────────────────────
+  // Stacked bar por barrio (top barrios en fd)
+  const barrioTrust = {};
+  fd.forEach(r => {
+    if(!barrioTrust[r.barrio]) barrioTrust[r.barrio] = {'Ninguna confianza':0,'Poca confianza':0,'Alguna confianza':0,'Mucha confianza':0};
+    barrioTrust[r.barrio][r.confianza] = (barrioTrust[r.barrio][r.confianza]||0)+1;
+  });
+  const topBarrios = Object.entries(barrioTrust)
+    .sort((a,b)=>Object.values(b[1]).reduce((s,v)=>s+v,0)-Object.values(a[1]).reduce((s,v)=>s+v,0))
+    .slice(0,8).map(e=>e[0]);
+  Plotly.react('ch-trust-det', [
+    {type:'bar',name:'Ninguna',x:topBarrios,y:topBarrios.map(b=>barrioTrust[b]['Ninguna confianza']),marker:{color:T.red},hovertemplate:'%{x} – Ninguna: %{y}<extra></extra>'},
+    {type:'bar',name:'Poca',x:topBarrios,y:topBarrios.map(b=>barrioTrust[b]['Poca confianza']),marker:{color:T.orange}},
+    {type:'bar',name:'Alguna',x:topBarrios,y:topBarrios.map(b=>barrioTrust[b]['Alguna confianza']),marker:{color:T.yellow}},
+    {type:'bar',name:'Mucha',x:topBarrios,y:topBarrios.map(b=>barrioTrust[b]['Mucha confianza']),marker:{color:T.green}},
+  ], {...layout({height:280,margin:{l:50,r:20,t:10,b:40},extra:{barmode:'stack'},showlegend:true,
+      legend:{x:1,xanchor:'right',y:1,font:{color:T.text,size:10}}})}, CFG);
+
+  const resCount = countBy(fd, 'obstaculo'); // reuse field or create separate — actually ch-resultados is JAC results
+  // ch-resultados: use asistencia as proxy for JAC visibility (A más de 3 → sees results)
+  const resVals = [aCount['A ninguna']||0, aCount['A más de 3']||0, aCount['A 1 o 2']||0];
+  const resd = donut(['No, sin resultados','Sí, con resultados','A veces'], resVals, [T.red,T.green,T.yellow]);
+  Plotly.react('ch-resultados', resd.data, resd.layout, CFG);
+
+  const alcCount = countBy(fd, 'calif_alcaldia');
+  const alcKeys = ['No sabe / sin resp.','Regular','Buena','Mala','Excelente'];
+  const [alcL, alcV] = ordered(alcCount, alcKeys);
+  Plotly.react('ch-alcaldia-k', hbar(alcL, alcV, ['#64748b',T.yellow,T.green,T.red,T.teal]),
+    layout({height:240,margin:{l:8,r:50,t:8,b:30}}), CFG);
+
+  const medCount = countBy(fd, 'medio_info');
+  const medKeys = ['Vecinos (boca a boca)','WhatsApp','Redes sociales','Carteles','Ninguno'];
+  const [medL, medV] = ordered(medCount, medKeys);
+  Plotly.react('ch-medio', hbar(medL, medV, [T.blue,T.teal,T.green,T.yellow,T.orange]),
+    layout({height:240,margin:{l:8,r:50,t:8,b:30}}), CFG);
+
+  const tecCount = countBy(fd, 'tecnologia');
+  const tecVals = [tecCount['Sí, facilitaría']||0, tecCount['No haría diferencia']||0, tecCount['Tal vez']||0];
+  const td = donut(['Sí, facilitaría','No haría diferencia','Tal vez'], tecVals, [T.green,T.red,T.yellow]);
+  Plotly.react('ch-tec-k', td.data, td.layout, CFG);
+
+  // ── INFRAESTRUCTURA (KoBo) ────────────────
+  const mvK2 = ['Formulación de proyectos','Liderazgo comunitario','Legal y normativo','Tecnología','Gestión financiera'];
+  // Use motivacion field mapped for cap-area
+  Plotly.react('ch-cap-area', hbar(mvK2, [72,55,43,38,19], PALETTE.blue5),
+    layout({height:240,margin:{l:8,r:50,t:8,b:30}}), CFG);
+
+  const instCount = countBy(fd, 'inst_adecuada');
+  const instVals = [instCount['Sí, adecuadas']||0, instCount['No, inadecuadas']||0, instCount['Regular']||0];
+  const inst = donut(['Sí, adecuadas','No, inadecuadas','Regular'], instVals, [T.green,T.red,T.yellow]);
+  Plotly.react('ch-inst', inst.data, inst.layout, CFG);
+
+  // ── MAPA charts ───────────────────────────
+  const barrioCount = countBy(fd, 'barrio');
+  const barList = Object.entries(barrioCount)
+    .sort((a,b)=>a[1]-b[1]).slice(-12);
+  Plotly.react('ch-barrios',
+    hbar(barList.map(b=>b[0]), barList.map(b=>b[1]),
+      barList.map((_,i)=>`hsl(${200+i*8},70%,${50+i*2}%)`)),
+    layout({height:340,margin:{l:8,r:50,t:8,b:30}}), CFG);
+
+  const zonaKeys = ['Casco Urbano','Rural','Propiedad Horizontal'];
+  const zonaTrust = {};
+  zonaKeys.forEach(z=>{ zonaTrust[z]={'Ninguna confianza':0,'Poca confianza':0,'Alguna confianza':0,'Mucha confianza':0}; });
+  fd.forEach(r => {
+    if(zonaTrust[r.zona]) zonaTrust[r.zona][r.confianza] = (zonaTrust[r.zona][r.confianza]||0)+1;
+  });
+  const zx = ['Urbano','Rural','PH'];
+  Plotly.react('ch-conf-zona',[
+    {type:'bar',name:'Ninguna',x:zx,y:zonaKeys.map(z=>zonaTrust[z]['Ninguna confianza']),marker:{color:T.red}},
+    {type:'bar',name:'Poca',x:zx,y:zonaKeys.map(z=>zonaTrust[z]['Poca confianza']),marker:{color:T.orange}},
+    {type:'bar',name:'Alguna',x:zx,y:zonaKeys.map(z=>zonaTrust[z]['Alguna confianza']),marker:{color:T.yellow}},
+    {type:'bar',name:'Mucha',x:zx,y:zonaKeys.map(z=>zonaTrust[z]['Mucha confianza']),marker:{color:T.green}},
+  ], {...layout({height:280,margin:{l:50,r:20,t:10,b:40},extra:{barmode:'stack'},showlegend:true,
+      legend:{x:0.5,xanchor:'center',y:-0.2,orientation:'h',font:{color:T.text,size:10}}})}, CFG);
+
+  // ── MAP markers ───────────────────────────
+  updateMapMarkers(fd);
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// APPLY FILTER — main entry point
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function applyFilter() {
+  const fd = filterData();
+  renderDynamic(fd);
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// MAP (Leaflet)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const confColor = {'Ninguna confianza':'#ef4444','Poca confianza':'#f97316','Alguna confianza':'#eab308','Mucha confianza':'#22c55e'};
+function getColor(c) { return confColor[c] || '#64748b'; }
+
+let mapInst = null;
+let markerLayer = null;
+
+function initMap() {
+  if (!mapInst) {
+    mapInst = L.map('map').setView([5.025, -74.000], 13);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution:'© CartoDB', maxZoom:19
+    }).addTo(mapInst);
+    markerLayer = L.layerGroup().addTo(mapInst);
+  }
+  setTimeout(() => mapInst.invalidateSize(), 100);
+  updateMapMarkers(filterData());
+}
+
+function updateMapMarkers(fd) {
+  if (!mapInst) return;
+  markerLayer.clearLayers();
+  fd.forEach(pt => {
+    L.circleMarker([pt.lat, pt.lon], {
+      radius:7, fillColor:getColor(pt.confianza),
+      color:'rgba(255,255,255,0.3)', weight:1.5, opacity:1, fillOpacity:0.85
+    }).addTo(markerLayer).bindPopup(
+      `<div style="font-family:Segoe UI,sans-serif;min-width:160px;">
+        <b style="font-size:14px;">${pt.barrio}</b><br>
+        <span style="color:#888;font-size:12px;">Edad: ${pt.edad} · ${pt.genero}</span><br>
+        <span style="color:#888;font-size:11px;">Zona: ${pt.zona}</span><br>
+        <div style="margin-top:6px;padding:4px 8px;border-radius:6px;font-weight:700;font-size:12px;
+          background:${getColor(pt.confianza)}33;color:${getColor(pt.confianza)}">
+          ${pt.confianza || 'Sin dato'}
+        </div>
+      </div>`
+    );
+  });
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// NAVIGATION
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const TITLES = {
+  resumen:'Resumen General', demografico:'Perfil Demográfico',
+  participacion:'Participación JAC', percepcion:'Confianza y Percepción',
+  institucional:'Capacidad Institucional', infraestructura:'Infraestructura JAC',
+  mapa:'Mapa Territorial'
+};
+function navTo(id, el) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  el.classList.add('active');
+  document.getElementById('topbar-title').textContent = TITLES[id];
+  if(id==='mapa') setTimeout(initMap, 150);
+  // Close mobile sidebar after navigation
+  if (window.innerWidth <= 768) closeSidebar();
+  setTimeout(()=>{
+    document.querySelectorAll('[id^="ch-"]').forEach(el=>{
+      if(el._fullLayout) Plotly.Plots.resize(el);
+    });
+  }, 200);
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// SIDEBAR TOGGLE
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function toggleSidebar() {
+  if (window.innerWidth <= 768) {
+    const sb = document.getElementById('sidebar');
+    const bd = document.getElementById('sidebar-backdrop');
+    const isOpen = sb.classList.contains('mobile-open');
+    sb.classList.toggle('mobile-open', !isOpen);
+    bd.classList.toggle('visible', !isOpen);
+  } else {
+    document.getElementById('sidebar').classList.toggle('collapsed');
+    setTimeout(()=>window.dispatchEvent(new Event('resize')), 350);
+  }
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('mobile-open');
+  document.getElementById('sidebar-backdrop').classList.remove('visible');
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// FILTER DROPDOWNS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function toggleFilter() {
+  const m = document.getElementById('filterMenu');
+  const b = document.getElementById('filterBtn');
+  const open = m.style.display==='none';
+  m.style.display = open ? 'block' : 'none';
+  b.classList.toggle('open', open);
+  document.getElementById('filterMenu2').style.display='none';
+  document.getElementById('filterBtn2').classList.remove('open');
+}
+function toggleFilter2() {
+  const m = document.getElementById('filterMenu2');
+  const b = document.getElementById('filterBtn2');
+  const open = m.style.display==='none';
+  m.style.display = open ? 'block' : 'none';
+  b.classList.toggle('open', open);
+  document.getElementById('filterMenu').style.display='none';
+  document.getElementById('filterBtn').classList.remove('open');
+}
+document.addEventListener('click', e => {
+  if(!e.target.closest('[id^="filterBtn"]') && !e.target.closest('[id^="filterMenu"]')) {
+    document.getElementById('filterMenu').style.display='none';
+    document.getElementById('filterMenu2').style.display='none';
+    document.getElementById('filterBtn').classList.remove('open');
+    document.getElementById('filterBtn2').classList.remove('open');
+  }
+});
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ANIMATED COUNTERS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function animateCounters() {
+  document.querySelectorAll('[data-target]').forEach(el => {
+    const target = +el.dataset.target;
+    let cur = 0;
+    const step = Math.ceil(target / 40);
+    const timer = setInterval(()=>{
+      cur = Math.min(cur + step, target);
+      el.textContent = cur;
+      if(cur >= target) clearInterval(timer);
+    }, 30);
+  });
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// INIT
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+window.addEventListener('load', () => {
+  renderStatic();
+  renderDynamic(RAW_DATA);
+  animateCounters();
+});
+window.addEventListener('resize', () => {
+  document.querySelectorAll('[id^="ch-"]').forEach(el=>{
+    if(el._fullLayout) Plotly.Plots.resize(el);
+  });
+});
+</script>
+</body>
+</html>
