@@ -480,8 +480,8 @@ body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background
       <div class="stat-banner">
         <div class="banner-icon">🔔</div>
         <div class="banner-text">
-          <h3>Hallazgos clave del diagnóstico JAC en Zipaquirá</h3>
-<p>Los resultados muestran brechas de confianza, participación y capacidad organizativa en las Juntas de Acción Comunal del municipio.</p>
+          <h3>Diagnóstico en 3 instrumentos combinados: KoBo GPS (230), Diagnóstico Participativo (50) y Fortalecimiento JAC (57)</h3>
+          <p>Los datos excluyen la política pública de jóvenes y se enfocan exclusivamente en las JAC de Zipaquirá</p>
         </div>
       </div>
 
@@ -1229,8 +1229,7 @@ async function cargarDatosKobo() {
     RAW_DATA = parsed.data
       .map(mapearFilaKobo)
       .filter(r => r.lat !== null && r.lon !== null && r.barrio);
-     
-const badge = document.getElementById('filter-count-badge');
+
     const badge = document.getElementById('filter-count-badge');
     if (badge) badge.textContent = `● ${RAW_DATA.length} encuestas`;
 
