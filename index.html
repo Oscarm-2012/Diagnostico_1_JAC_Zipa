@@ -1229,7 +1229,8 @@ async function cargarDatosKobo() {
     RAW_DATA = parsed.data
       .map(mapearFilaKobo)
       .filter(r => r.lat !== null && r.lon !== null && r.barrio);
-
+     
+const badge = document.getElementById('filter-count-badge');
     const badge = document.getElementById('filter-count-badge');
     if (badge) badge.textContent = `● ${RAW_DATA.length} encuestas`;
 
