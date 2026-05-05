@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Diagnóstico participativo para el Fortalecimiento de las Juntas de Acción Comunal de Zipaquirá</title>
+<title>Dashboard JAC Zipaquirá</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.26.0/plotly.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -372,7 +372,7 @@ body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background
     <div class="logo-icon">🏘️</div>
     <div class="logo-text">
       <h2>JAC Zipaquirá</h2>
-      <p>Diagnóstico participativo · Fortalecimiento JAC</p>
+      <p>Diagnóstico 2025-2026</p>
     </div>
   </div>
 
@@ -427,7 +427,7 @@ body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background
     <div class="topbar-toggle" onclick="toggleSidebar()">☰</div>
     <div>
       <div class="topbar-title" id="topbar-title">Resumen General</div>
-      <div class="topbar-sub">Diagnóstico participativo para el Fortalecimiento de las JAC · Zipaquirá</div>
+      <div class="topbar-sub">Juntas de Acción Comunal · Zipaquirá, Cundinamarca</div>
     </div>
     <div class="topbar-right">
       <!-- Filtro zona -->
@@ -473,7 +473,7 @@ body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background
         <div class="title-icon blue">📊</div>
         <div>
           <h2>Resumen General</h2>
-          <p>Diagnóstico participativo para el Fortalecimiento de las Juntas de Acción Comunal de Zipaquirá</p>
+          <p>Diagnóstico integral sobre Juntas de Acción Comunal de Zipaquirá · 2025-2026</p>
         </div>
       </div>
 
@@ -1393,40 +1393,6 @@ function renderDynamic(fd) {
   // ── Update badge ──────────────────────────
   document.getElementById('filter-count-badge').textContent = '● ' + n + ' encuestas';
   document.getElementById('kpi-map-pts').textContent = n;
-  // ── INSIGHT CARDS dinámicas ────────────────────────────────────────
-  const medioCount = countBy(fd, 'medio_info');
-  const bocaPct2   = pct(medioCount['Vecinos (boca a boca)']||0, n);
-  const tresMasPct = pct(aCount['A más de 3']||0, n);
-  const insightDefs = [
-    { emoji:'⚠️', title:'Participación crítica',
-      body:`El <strong>${nAsistePct}% de la ciudadanía no asistió a ninguna reunión JAC</strong> en el último año. Solo el ${tresMasPct}% participó activamente. La desconexión comunidad-JAC es la brecha más urgente.`,
-      tagClass:'tag-red', tagText:'Prioridad alta' },
-    { emoji:'📵', title:'Brecha digital crítica',
-      body:`El <strong>82% de las JAC no tiene ninguna herramienta digital</strong>. La comunicación depende del "boca a boca" en el ${bocaPct2}% de los casos. La modernización es urgente.`,
-      tagClass:'tag-orange', tagText:'Necesidad urgente' },
-    { emoji:'💰', title:'Precariedad financiera',
-      body:`El <strong>61% de las JAC no maneja presupuesto o está en déficit</strong>. El 62% de los recursos vienen de autogestión. Solo 2 JAC tienen contratos con el Estado.`,
-      tagClass:'tag-red', tagText:'Brecha crítica' },
-    { emoji:'✅', title:'Fortaleza legal',
-      body:`El <strong>63% tiene Auto de Reconocimiento vigente + RUT + cuenta bancaria</strong> activos. Esta base legal sólida permite articularse con convenios institucionales.`,
-      tagClass:'tag-green', tagText:'Fortaleza clave' },
-    { emoji:'👨‍🦳', title:'Envejecimiento del liderazgo',
-      body:`Entre líderes encuestados, <strong>solo 1 persona (2%) tiene entre 14-28 años</strong>. El 79% de la ciudadanía percibe falta de participación juvenil en las JAC.`,
-      tagClass:'tag-orange', tagText:'Relevo generacional' },
-    { emoji:'🏛️', title:'Débil respaldo institucional',
-      body:`El <strong>70% de los líderes reporta capacitación esporádica o nula</strong> por parte de la Alcaldía. El 42% solo conoce "algunos programas" sin saber cómo acceder.`,
-      tagClass:'tag-blue', tagText:'Oportunidad mejora' }
-  ];
-  const insightCards = document.querySelectorAll('.insight-card');
-  insightDefs.forEach((d, i) => {
-    if (!insightCards[i]) return;
-    insightCards[i].querySelector('.insight-emoji').textContent = d.emoji;
-    insightCards[i].querySelector('.insight-title').textContent = d.title;
-    insightCards[i].querySelector('.insight-body').innerHTML    = d.body;
-    const tag = insightCards[i].querySelector('.insight-tag');
-    tag.className   = 'insight-tag ' + d.tagClass;
-    tag.textContent = d.tagText;
-  });
 
   // ── RESUMEN KPIs ──────────────────────────
   const cCount = countBy(fd, 'confianza');
