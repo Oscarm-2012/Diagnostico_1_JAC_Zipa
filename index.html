@@ -7,6 +7,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.26.0/plotly.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <style>
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    VARIABLES & RESET
@@ -872,7 +873,7 @@ function donut(labels, vals, colors) {
 //         asistencia, obstaculo, calif_alcaldia, medio_info,
 //         motivacion, tecnologia, inst_adecuada, razon_np
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-const RAW_DATA = [
+let RAW_DATA = [
   {zona:'Casco Urbano',barrio:'Comuneros 2',lat:5.0266,lon:-74.000252,edad:'18-28',genero:'Femenino',confianza:'Mucha confianza',asistencia:'A más de 3',obstaculo:'Falta capacitación',calif_alcaldia:'Buena',medio_info:'Redes sociales',motivacion:'Líderes confiables',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'Falta de tiempo'},
   {zona:'Casco Urbano',barrio:'La Esmeralda',lat:5.029292,lon:-74.000285,edad:'46-60',genero:'Femenino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Regular',medio_info:'Vecinos (boca a boca)',motivacion:'Más apoyo Alcaldía',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'Desconfianza en líderes'},
   {zona:'Casco Urbano',barrio:'San Juanito',lat:5.029789,lon:-73.999575,edad:'60+',genero:'Masculino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta capacitación',calif_alcaldia:'Mala',medio_info:'Vecinos (boca a boca)',motivacion:'Ver resultados concretos',tecnologia:'Tal vez',inst_adecuada:'Sí, adecuadas',razon_np:'Desconfianza en líderes'},
@@ -1101,7 +1102,154 @@ const RAW_DATA = [
   {zona:'Casco Urbano',barrio:'Montoya',lat:5.034531,lon:-73.997469,edad:'18-28',genero:'Femenino',confianza:'Poca confianza',asistencia:'A ninguna',obstaculo:'Falta apoyo Alcaldía',calif_alcaldia:'Regular',medio_info:'Vecinos (boca a boca)',motivacion:'Canales tecnológicos',tecnologia:'Sí, facilitaría',inst_adecuada:'Sí, adecuadas',razon_np:'No me avisan'},
   {zona:'Casco Urbano',barrio:'Villa del Rey',lat:5.027295,lon:-74.003239,edad:'29-45',genero:'Masculino',confianza:'Alguna confianza',asistencia:'A ninguna',obstaculo:'Falta unión',calif_alcaldia:'Mala',medio_info:'WhatsApp',motivacion:'Ver resultados concretos',tecnologia:'Sí, facilitaría',inst_adecuada:'No, inadecuadas',razon_np:'Desconfianza en líderes'}
 ];
+// CARGA VIVA DESDE KOBO VIA CLOUDFLARE WORKER
+const KOBO_CSV_URL = 'https://kobo-jac-zipa-proxy.oscardavidmelo.workers.dev';
 
+function koboLimpiar(v) {
+  return String(v ?? '').trim();
+}
+
+function koboCampo(row, texto) {
+  const key = Object.keys(row).find(k => k.includes(texto));
+  return key ? koboLimpiar(row[key]) : '';
+}
+
+function koboNumero(v) {
+  const n = Number(String(v ?? '').replace(',', '.'));
+  return Number.isFinite(n) ? n : null;
+}
+
+function koboZona(v) {
+  v = koboLimpiar(v).toLowerCase();
+  if (v.includes('rural')) return 'Rural';
+  if (v.includes('propiedad') || v.includes('conjunto')) return 'Propiedad Horizontal';
+  return 'Casco Urbano';
+}
+
+function koboEdad(v) {
+  v = koboLimpiar(v);
+  if (v.includes('18')) return '18-28';
+  if (v.includes('29')) return '29-45';
+  if (v.includes('46')) return '46-60';
+  if (v.includes('60')) return '60+';
+  return 'Sin dato';
+}
+
+function koboGenero(v) {
+  v = koboLimpiar(v).toLowerCase();
+  if (v.includes('femenino')) return 'Femenino';
+  if (v.includes('masculino')) return 'Masculino';
+  return 'Otro';
+}
+
+function koboObstaculo(v) {
+  v = koboLimpiar(v).toLowerCase();
+  if (v.includes('unión') || v.includes('participación')) return 'Falta unión';
+  if (v.includes('recursos')) return 'Falta recursos';
+  if (v.includes('alcaldía')) return 'Falta apoyo Alcaldía';
+  if (v.includes('capacitación')) return 'Falta capacitación';
+  return 'Sin dato';
+}
+
+function koboMedio(v) {
+  v = koboLimpiar(v).toLowerCase();
+  if (v.includes('vecinos') || v.includes('boca')) return 'Vecinos (boca a boca)';
+  if (v.includes('whatsapp')) return 'WhatsApp';
+  if (v.includes('redes')) return 'Redes sociales';
+  if (v.includes('cartel') || v.includes('perifoneo')) return 'Carteles';
+  return 'Ninguno';
+}
+
+function koboMotivacion(v) {
+  v = koboLimpiar(v).toLowerCase();
+  if (v.includes('resultados')) return 'Ver resultados concretos';
+  if (v.includes('tecnológicos') || v.includes('tecnologicos')) return 'Canales tecnológicos';
+  if (v.includes('liderazgo') || v.includes('liderazgos')) return 'Líderes confiables';
+  if (v.includes('horarios')) return 'Más apoyo Alcaldía';
+  return 'Conocer mis derechos';
+}
+
+function koboTecnologia(v) {
+  v = koboLimpiar(v).toLowerCase();
+  if (v.startsWith('sí') || v.startsWith('si')) return 'Sí, facilitaría';
+  if (v.startsWith('no')) return 'No haría diferencia';
+  return 'Tal vez';
+}
+
+function koboInstalaciones(v) {
+  v = koboLimpiar(v).toLowerCase();
+  if (v.startsWith('sí') || v.startsWith('si')) return 'Sí, adecuadas';
+  if (v.startsWith('no')) return 'No, inadecuadas';
+  return 'Regular';
+}
+
+function koboRazon(v) {
+  v = koboLimpiar(v).toLowerCase();
+  if (!v) return 'Sin dato';
+  if (v.includes('tiempo')) return 'Falta de tiempo';
+  if (v.includes('desconocimiento') || v.includes('avisan')) return 'No me avisan';
+  if (v.includes('desconfianza') || v.includes('conflictos')) return 'Desconfianza en líderes';
+  return 'No le veo utilidad';
+}
+
+function mapearFilaKobo(row) {
+  const lat = koboNumero(koboCampo(row, '_latitude'));
+  const lon = koboNumero(koboCampo(row, '_longitude'));
+
+  return {
+    zona: koboZona(koboCampo(row, '1. ¿En qué zona')),
+    barrio: koboCampo(row, '2. ¿Cuál es el nombre'),
+    lat: lat,
+    lon: lon,
+    edad: koboEdad(koboCampo(row, '3. ¿Cuál es su rango de edad')),
+    genero: koboGenero(koboCampo(row, '4. ¿Con qué género')),
+    confianza: koboCampo(row, '11. ¿Qué tanta confianza') || 'Sin dato',
+    asistencia: koboCampo(row, '9. En el último año') || 'Sin dato',
+    obstaculo: koboObstaculo(koboCampo(row, '14. Según su percepción')),
+    calif_alcaldia: koboCampo(row, '15. ¿Cómo califica') || 'No sabe / sin resp.',
+    medio_info: koboMedio(koboCampo(row, '13. ¿A través de qué medio')),
+    motivacion: koboMotivacion(koboCampo(row, '17. ¿Qué lo motivaría')),
+    tecnologia: koboTecnologia(koboCampo(row, '18. Si la JAC contara')),
+    inst_adecuada: koboInstalaciones(koboCampo(row, '19. En general')),
+    razon_np: koboRazon(koboCampo(row, '10. (Si respondió'))
+  };
+}
+
+async function cargarDatosKobo() {
+  try {
+    const response = await fetch(KOBO_CSV_URL, { cache: 'no-store' });
+    const csv = await response.text();
+
+    const parsed = Papa.parse(csv, {
+      header: true,
+      delimiter: ';',
+      skipEmptyLines: true
+    });
+
+    RAW_DATA = parsed.data
+      .map(mapearFilaKobo)
+      .filter(r => r.lat !== null && r.lon !== null && r.barrio);
+
+    const badge = document.getElementById('filter-count-badge');
+    if (badge) badge.textContent = `● ${RAW_DATA.length} encuestas`;
+
+    const kpiMapa = document.getElementById('kpi-map-pts');
+    if (kpiMapa) kpiMapa.textContent = RAW_DATA.length;
+
+    if (typeof applyFilter === 'function') {
+      applyFilter();
+    }
+
+  } catch (error) {
+    console.error('Error cargando datos de Kobo:', error);
+    alert('No se pudieron cargar los datos de Kobo.');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  cargarDatosKobo();
+  setInterval(cargarDatosKobo, 60000);
+});
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // FILTER STATE & HELPERS
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
